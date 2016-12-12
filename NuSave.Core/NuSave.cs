@@ -55,8 +55,7 @@ namespace NuSave.Core
 
             foreach (var package in _toDownload)
             {
-                if (File.Exists(package.GetFileName())) continue;
-                if (Directory.Exists(package.GetHierarchialDirPath(_outputDirectory))) continue;
+                if (PackageExists(package.Id, package.Version.ToString())) continue;
 
                 if (!_silent)
                 {
@@ -107,7 +106,17 @@ namespace NuSave.Core
             {
                 Console.WriteLine(JsonConvert.SerializeObject(GetDependencies()));
             }
-        }        
+        }
+        
+        bool PackageExists(string id, string version)
+        {
+            string nupkgFileName = $"{id}.{version}.nupkg".ToLower();
+
+            if (File.Exists(Path.Combine(_outputDirectory, nupkgFileName))) return true;
+            if (Directory.Exists(Path.Combine(_outputDirectory, id.ToLower(), version))) return true;
+
+            return false;
+        }    
 
         void ResolveDependencies(IPackage package)
         {
@@ -115,6 +124,8 @@ namespace NuSave.Core
             {
                 foreach (var dependency in set.Dependencies)
                 {
+                    if (PackageExists(dependency.Id, dependency.VersionSpec.ToString())) continue;
+
                     var found = Repository.FindPackage(
                         dependency.Id,
                         dependency.VersionSpec,
