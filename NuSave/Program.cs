@@ -25,7 +25,8 @@ namespace NuSave.CLI
             app.Command("version", (target) => { })
             .OnExecute(() =>
             {
-                Console.WriteLine(Version);
+                string revision = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.Revision.ToString();
+                Console.WriteLine($"{Version}+{revision}");
                 return 0;
             });
 
