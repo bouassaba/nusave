@@ -28,7 +28,7 @@ namespace NuSave.Core
             bool silent = false,
             bool json = false)
         {
-            _outputDirectory = outputDirectory ?? throw new ArgumentException("outputDirectory cannot be null");
+            _outputDirectory = outputDirectory;
             _id = id ?? throw new ArgumentException("id cannot be null");
             _version = version;
             _allowPreRelease = allowPreRelease;
