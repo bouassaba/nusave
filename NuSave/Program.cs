@@ -1,10 +1,13 @@
 ﻿using Microsoft.Extensions.CommandLineUtils;
 using NuSave.Core;
+using System;
 
 namespace NuSave.CLI
 {
     class Program
     {
+        const string Version = "1.0.0-preview.1";
+
         static void Main(string[] args)
         {
             CommandLineApplication app = new CommandLineApplication();
@@ -17,6 +20,13 @@ namespace NuSave.CLI
             var silent = app.Option("-silent", "Don't write anything to stdout", CommandOptionType.NoValue);
             var noDownload = app.Option("-noDownload", "Don't download packages", CommandOptionType.NoValue);
             var json = app.Option("-json", "Dependencies list will be printed in json format", CommandOptionType.NoValue);
+
+            app.Command("version", (target) => { })
+            .OnExecute(() =>
+            {
+                Console.WriteLine(Version);
+                return 0;
+            });
 
             app.HelpOption("-? | --help | -help");
 
