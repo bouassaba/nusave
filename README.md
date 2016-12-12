@@ -30,7 +30,7 @@ NuSave -outputDirectory "C:\MyLocalFeed" -id "Newtonsoft.Json" -version "9.0.1" 
 
 The result:
 
-![outgridview](readme\outgridview.png)
+![outgridview](https://raw.githubusercontent.com/anass-b/NuSave/master/readme/outgridview.png)
 
 #### -?
 
