@@ -7,12 +7,12 @@ namespace NuSave.Core
     {
         public static string GetFileName(this IPackage package)
         {
-            return $"{package.Id}.{package.Version}.nupkg";
+            return $"{package.Id}.{package.Version}.nupkg".ToLower();
         }
 
         public static string GetHierarchialDirPath(this IPackage package, string baseDir)
         {
-            return Path.Combine(baseDir, package.Id, package.Version.ToString());
+            return Path.Combine(baseDir, package.Id.ToLower(), package.Version.ToString());
         }
     }
 }
