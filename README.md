@@ -16,7 +16,9 @@ The combination of `NuSave` and `NuGet.Server` gives you the ability to download
 
 Check the releases page for binaries, or build `NuSave.sln` .
 
-Don't forget to add the location of `NuSave.exe` to the `$PATH`
+Don't forget to add the location of `NuSave.exe` to the `$PATH`.
+
+.NET Framework 4.6.2 is need to build and run `NuSave`.
 
 ## Commands
 
@@ -28,7 +30,7 @@ NuSave -outputDirectory "C:\MyLocalFeed" -id "Newtonsoft.Json" -version "9.0.1" 
 
 The result:
 
-![outgridview](C:\Users\Anass\Developer\NuSave\readme\outgridview.png)
+![outgridview](readme\outgridview.png)
 
 #### -?
 
