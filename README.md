@@ -16,19 +16,21 @@ The combination of `NuSave` and `NuGet.Server` gives you the ability to download
 
 Check the releases page for binaries, or build `NuSave.sln` .
 
-Don't forget to add the location of `NuSave.exe` to the `$PATH`
+Don't forget to add the location of `NuSave.exe` to the `$PATH`.
+
+.NET Framework 4.6.2 is need to build and run `NuSave`.
 
 ## Commands
 
 `NuSave` is able to output the dependency list without downloading it, and formatting the output as JSON, that way you can pipe the content to another program that will use this information to do other tasks, this can be the case for build scripts. The following command will pipe the content to PowerShell's `Out-GridView` :
 
-```shell
+```powershell
 NuSave -outputDirectory "C:\MyLocalFeed" -id "Newtonsoft.Json" -version "9.0.1" -noDownload -json | ConvertFrom-Json) | Out-GridView
 ```
 
 The result:
 
-![outgridview](C:\Users\Anass\Developer\NuSave\readme\outgridview.png)
+![outgridview](https://raw.githubusercontent.com/anass-b/NuSave/master/readme/outgridview.png)
 
 #### -?
 
