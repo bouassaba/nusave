@@ -5,11 +5,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading;
 
 namespace NuSave.Core
 {
     public class Downloader
     {
+        const string DefaultSource = "https://packages.nuget.org/api/v2";
+        readonly string _source;
         readonly string _outputDirectory;
         readonly string _id;
         readonly string _version;
@@ -20,6 +23,7 @@ namespace NuSave.Core
         List<IPackage> _toDownload = new List<IPackage>();
 
         public Downloader(
+            string source,
             string outputDirectory,
             string id,
             string version,
@@ -28,6 +32,7 @@ namespace NuSave.Core
             bool silent = false,
             bool json = false)
         {
+            _source = source;
             _outputDirectory = outputDirectory;
             _id = id ?? throw new ArgumentException("id cannot be null");
             _version = version;
@@ -59,7 +64,26 @@ namespace NuSave.Core
                 }
 
                 var dataServcePackage = (DataServicePackage)package;
-                webClient.DownloadFile(dataServcePackage.DownloadUrl, Path.Combine(_outputDirectory, package.GetFileName()));
+                // We keep retrying forever until the user will press Ctrl-C
+                // This lets the user decide when to stop retrying.
+                // The reason for this is that building the dependencies list is expensive
+                // on slow internet connection, when the CLI crashes because of a WebException
+                // the user has to wait for the dependencies list to build rebuild again.
+                while (true)
+                {
+                    try
+                    {
+                        webClient.DownloadFile(dataServcePackage.DownloadUrl, Path.Combine(_outputDirectory, package.GetFileName()));
+                        break;
+                    }
+                    catch (WebException e)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"{e.Message}. Retrying in one second...");
+                        Console.ResetColor();
+                        Thread.Sleep(1000);
+                    }
+                }   
             }
         }
 
@@ -110,6 +134,18 @@ namespace NuSave.Core
             }
         }
 
+        string GetSource()
+        {
+            if (_source == null)
+            {
+                return DefaultSource;
+            }
+            else
+            {
+                return _source;
+            }
+        }
+
         /// <summary>
         /// Convenience method that can be used in powershell in combination with Out-GridView
         /// </summary>
@@ -155,8 +191,7 @@ namespace NuSave.Core
             {
                 if (_repository == null)
                 {
-                    _repository = PackageRepositoryFactory.Default.CreateRepository(
-                        "https://packages.nuget.org/api/v2");
+                    _repository = PackageRepositoryFactory.Default.CreateRepository(GetSource());
                 }
                 return _repository;
             }

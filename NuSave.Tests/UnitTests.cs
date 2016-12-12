@@ -10,7 +10,7 @@ namespace NuSave.Tests
         [TestMethod]
         public void TestDependencyResolver()
         {
-            var downloader = new Downloader(Environment.CurrentDirectory, "System.Collections", "4.3.0");
+            var downloader = new Downloader(null, Environment.CurrentDirectory, "System.Collections", "4.3.0");
             downloader.ResolveDependencies();
             var deps = downloader.GetDependencies();
             Assert.AreEqual(deps.Count, 4);

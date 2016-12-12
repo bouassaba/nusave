@@ -6,12 +6,13 @@ namespace NuSave.CLI
 {
     class Program
     {
-        const string Version = "1.0.0-preview.1";
+        const string Version = "1.0.0-preview.2";
 
         static void Main(string[] args)
         {
             CommandLineApplication app = new CommandLineApplication();
 
+            var source = app.Option("-source", "Package source", CommandOptionType.SingleValue);
             var packageId = app.Option("-id", "Package ID", CommandOptionType.SingleValue);
             var outputDirectory = app.Option("-outputDirectory", "Output directory", CommandOptionType.SingleValue);
             var packageVersion = app.Option("-version", "Package version", CommandOptionType.SingleValue);
@@ -35,13 +36,14 @@ namespace NuSave.CLI
                 string outputDirectoryStr = noDownload.HasValue() ? null : outputDirectory.Value();
 
                 var downloader = new Downloader(
-                outputDirectory: outputDirectoryStr,
-                id: packageId.Value(),
-                version: packageVersion.Value(),
-                allowPreRelease: allowPreRelease.HasValue(),
-                allowUnlisted: allowUnlisted.HasValue(),
-                silent: silent.HasValue(),
-                json: json.HasValue());
+                    source: source.Value(),
+                    outputDirectory: outputDirectoryStr,
+                    id: packageId.Value(),
+                    version: packageVersion.Value(),
+                    allowPreRelease: allowPreRelease.HasValue(),
+                    allowUnlisted: allowUnlisted.HasValue(),
+                    silent: silent.HasValue(),
+                    json: json.HasValue());
 
                 downloader.ResolveDependencies();
                 if (!noDownload.HasValue())
