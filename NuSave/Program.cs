@@ -22,8 +22,10 @@ namespace NuSave.CLI
 
             app.OnExecute(() =>
             {
+                string outputDirectoryStr = noDownload.HasValue() ? null : outputDirectory.Value();
+
                 var downloader = new Downloader(
-                outputDirectory: outputDirectory.Value(),
+                outputDirectory: outputDirectoryStr,
                 id: packageId.Value(),
                 version: packageVersion.Value(),
                 allowPreRelease: allowPreRelease.HasValue(),

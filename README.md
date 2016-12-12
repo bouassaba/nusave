@@ -25,7 +25,7 @@ Don't forget to add the location of `NuSave.exe` to the `$PATH`.
 `NuSave` is able to output the dependency list without downloading it, and formatting the output as JSON, that way you can pipe the content to another program that will use this information to do other tasks, this can be the case for build scripts. The following command will pipe the content to PowerShell's `Out-GridView` :
 
 ```powershell
-NuSave -outputDirectory "C:\MyLocalFeed" -id "Newtonsoft.Json" -version "9.0.1" -noDownload -json | ConvertFrom-Json) | Out-GridView
+NuSave -id "Newtonsoft.Json" -version "9.0.1" -noDownload -json | ConvertFrom-Json) | Out-GridView
 ```
 
 The result:
