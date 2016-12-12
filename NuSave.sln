@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.25928.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave.Core", "NuSave.Core\NuSave.Core.csproj", "{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave", "NuSave\NuSave.csproj", "{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave.Tests", "NuSave.Tests\NuSave.Tests.csproj", "{46778D2F-0BDD-493D-954D-5E163B7814C0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46778D2F-0BDD-493D-954D-5E163B7814C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46778D2F-0BDD-493D-954D-5E163B7814C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46778D2F-0BDD-493D-954D-5E163B7814C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46778D2F-0BDD-493D-954D-5E163B7814C0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
