@@ -9,10 +9,5 @@ namespace NuSave.Core
         {
             return $"{package.Id}.{package.Version}.nupkg".ToLower();
         }
-
-        public static string GetHierarchialDirPath(this IPackage package, string baseDir)
-        {
-            return Path.Combine(baseDir, package.Id.ToLower(), package.Version.ToString());
-        }
     }
 }

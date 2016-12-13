@@ -52,6 +52,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MsBuildPackageRef.cs" />
     <Compile Include="IPackageExtensions.cs" />
     <Compile Include="NuSave.cs" />
     <Compile Include="SimplifiedPackageInfo.cs" />

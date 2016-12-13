@@ -12,6 +12,7 @@ namespace NuSave.CLI
         {
             CommandLineApplication app = new CommandLineApplication();
 
+            var msbuildProject = app.Option("-msbuildProject", "MSBuild Project file", CommandOptionType.SingleValue);
             var source = app.Option("-source", "Package source", CommandOptionType.SingleValue);
             var packageId = app.Option("-id", "Package ID", CommandOptionType.SingleValue);
             var outputDirectory = app.Option("-outputDirectory", "Output directory", CommandOptionType.SingleValue);
@@ -46,7 +47,15 @@ namespace NuSave.CLI
                     silent: silent.HasValue(),
                     json: json.HasValue());
 
-                downloader.ResolveDependencies();
+                if (msbuildProject.HasValue())
+                {
+                    downloader.ResolveDependencies(msbuildProject.Value());
+                }
+                else
+                {
+                    downloader.ResolveDependencies();
+                }
+                
                 if (!noDownload.HasValue())
                 {
                     downloader.Download();

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using System.Xml.Linq;
 
 namespace NuSave.Core
 {
@@ -34,7 +35,7 @@ namespace NuSave.Core
         {
             _source = source;
             _outputDirectory = outputDirectory;
-            _id = id ?? throw new ArgumentException("id cannot be null");
+            _id = id;
             _version = version;
             _allowPreRelease = allowPreRelease;
             _allowUnlisted = allowUnlisted;
@@ -72,7 +73,8 @@ namespace NuSave.Core
                 {
                     try
                     {
-                        webClient.DownloadFile(dataServcePackage.DownloadUrl, Path.Combine(_outputDirectory, package.GetFileName()));
+                        string nugetPackageOutputPath = GetNuGetPackagePath(package.Id, package.Version.ToString());
+                        webClient.DownloadFile(dataServcePackage.DownloadUrl, nugetPackageOutputPath);
                         break;
                     }
                     catch (WebException e)
@@ -86,7 +88,7 @@ namespace NuSave.Core
             }
         }
 
-        public void ResolveDependencies()
+        public void ResolveDependencies(string csprojPath = null)
         {
             if (_toDownload != null && _toDownload.Count > 1)
             {
@@ -100,26 +102,95 @@ namespace NuSave.Core
                 Console.ResetColor();
             }
 
-            ResolveDependencies(Package);
+            if (csprojPath == null)
+            {
+                IPackage package = string.IsNullOrWhiteSpace(_version) ?
+                         Repository.FindPackage(_id) :
+                         Repository.FindPackage(_id, SemanticVersion.Parse(_version), _allowPreRelease, _allowUnlisted);
+
+                if (package == null) throw new Exception("Could not resolve package");
+
+                ResolveDependencies(package);
+            }
+            else
+            {
+                XNamespace @namespace = "http://schemas.microsoft.com/developer/msbuild/2003";
+                XDocument csprojDoc = XDocument.Load(csprojPath);
+
+                IEnumerable<MsBuildPackageRef> references = csprojDoc
+                    .Element(@namespace + "Project")
+                    .Elements(@namespace + "ItemGroup")
+                    .Elements(@namespace + "PackageReference")
+                    .Select(e => new MsBuildPackageRef()
+                    {
+                        Include = e.Attribute("Include").Value,
+                        Version = e.Element(@namespace + "Version").Value
+                    });
+                ResolveDependencies(references);
+
+                IEnumerable<MsBuildPackageRef> dotnetCliToolReferences = csprojDoc
+                    .Element(@namespace + "Project")
+                    .Elements(@namespace + "ItemGroup")
+                    .Elements(@namespace + "DotNetCliToolReference")
+                    .Select(e => new MsBuildPackageRef()
+                    {
+                        Include = e.Attribute("Include").Value,
+                        Version = e.Element(@namespace + "Version").Value
+                    });
+                ResolveDependencies(dotnetCliToolReferences);
+            }
 
             if (_json)
             {
                 Console.WriteLine(JsonConvert.SerializeObject(GetDependencies()));
             }
         }
+
+        void ResolveDependencies(IEnumerable<MsBuildPackageRef> references)
+        {
+            foreach (var packageRef in references)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"{packageRef.Include} {packageRef.Version}");
+                Console.ResetColor();
+
+                ResolveDependencies(packageRef);
+            }
+        }
+
+        string GetNuGetPackagePath(string id, string version)
+        {
+            return Path.Combine(_outputDirectory, $"{id}.{version}.nupkg".ToLower());
+        }
+
+        string GetNuGetHierarchialDirPath(string id, string version)
+        {
+            return Path.Combine(_outputDirectory, id.ToLower(), version);
+        }
         
         bool PackageExists(string id, string version)
         {
-            string nupkgFileName = $"{id}.{version}.nupkg".ToLower();
+            string nugetPackagePath = GetNuGetPackagePath(id, version);
+            if (File.Exists(nugetPackagePath)) return true;
 
-            if (File.Exists(Path.Combine(_outputDirectory, nupkgFileName))) return true;
-            if (Directory.Exists(Path.Combine(_outputDirectory, id.ToLower(), version))) return true;
+            string nuGetHierarchialDirPath = GetNuGetHierarchialDirPath(id, version);
+            if (Directory.Exists(nuGetHierarchialDirPath)) return true;
 
             return false;
-        }    
+        }
+
+        void ResolveDependencies(MsBuildPackageRef msBuildpackageRef)
+        {
+            IPackage nugetPackage = Repository.FindPackage(msBuildpackageRef.Include, SemanticVersion.Parse(msBuildpackageRef.Version), true, true);
+            ResolveDependencies(nugetPackage);
+        }
 
         void ResolveDependencies(IPackage package)
         {
+            if (PackageExists(package.Id, package.Version.ToString())) return;
+
+            _toDownload.Add(package);
+
             foreach (var set in package.DependencySets)
             {
                 foreach (var dependency in set.Dependencies)
@@ -129,17 +200,25 @@ namespace NuSave.Core
                     var found = Repository.FindPackage(
                         dependency.Id,
                         dependency.VersionSpec,
-                        _allowPreRelease,
-                        _allowUnlisted);
-
-                    if (!_toDownload.Any(p => p.Title == found.Title && p.Version == found.Version))
+                        true,
+                        true);
+                    if (found == null)
                     {
-                        _toDownload.Add(found);
-                        if (!_silent)
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Could not resolve dependency: {dependency.Id} {dependency.VersionSpec.ToString()}");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        if (!_toDownload.Any(p => p.Title == found.Title && p.Version == found.Version))
                         {
-                            Console.WriteLine($"{found.Id} {found.Version}");
+                            _toDownload.Add(found);
+                            if (!_silent)
+                            {
+                                Console.WriteLine($"{found.Id} {found.Version}");
+                            }
+                            ResolveDependencies(found);
                         }
-                        ResolveDependencies(found);
                     }
                 }
             }
@@ -174,25 +253,6 @@ namespace NuSave.Core
                 });
             }
             return list;
-        }
-
-        IPackage _package;
-        IPackage Package
-        {
-            get
-            {
-                if (_package == null)
-                {
-                    _package = string.IsNullOrWhiteSpace(_version) ?
-                          Repository.FindPackage(_id) :
-                          Repository.FindPackage(_id, SemanticVersion.Parse(_version), _allowPreRelease, _allowUnlisted);
-
-                    if (_package == null) throw new Exception("Could not resolve package");
-
-                    _toDownload.Add(_package);
-                }
-                return _package;
-            }
         }
 
         IPackageRepository _repository;
