@@ -20,7 +20,15 @@ Don't forget to add the location of `NuSave.exe` to the `$PATH`.
 
 .NET Framework 4.6.2 is need to build and run `NuSave`.
 
-## Commands
+## More
+
+### Download nuget packages from a .csproj MSBuild project
+
+```shell
+NuSave -msbuildProject "/path/to/project.csproj" -outputDirectory "/path/to/output/dir"
+```
+
+### Pipe the JSON result to PowerShell's `Out-GridView`
 
 `NuSave` is able to output the dependency list without downloading it, and formatting the output as JSON, that way you can pipe the content to another program that will use this information to do other tasks, this can be the case for build scripts. The following command will pipe the content to PowerShell's `Out-GridView` :
 
@@ -32,37 +40,7 @@ The result:
 
 ![outgridview](https://raw.githubusercontent.com/anass-b/NuSave/master/readme/outgridview.png)
 
-#### -?
-
-Help.
-
-### -outputDirectory
-
-The directory where to save the downloaded packages.
-
-### -version
-
-Specifies the package version that needs to be downloaded.
-
-### -allowPreRelease
-
-Enabled of pre-release packages.
-
-### -allowUnlisted
-
-Enabled unlisted packages.
-
-### -silent
-
-No console output.
-
-### -json
-
-Get a clean output with no messages "except on errors", which is JSON formatted.
-
-### -noDownload
-
-Don't download the packages, just get a list of packages that will be downloaded if we omit this option.
+Check `NuSave -help` for more command line options.
 
 
 
