@@ -74,7 +74,15 @@ namespace NuSave.Core
                     try
                     {
                         string nugetPackageOutputPath = GetNuGetPackagePath(package.Id, package.Version.ToString());
-                        webClient.DownloadFile(dataServcePackage.DownloadUrl, nugetPackageOutputPath);
+                        var downloadUrl = dataServcePackage.DownloadUrl;
+                        var proxy = webClient.Proxy;
+                        if (proxy != null)
+                        {
+                            var proxyuri = proxy.GetProxy(downloadUrl).ToString();
+                            webClient.UseDefaultCredentials = true;
+                            webClient.Proxy = new WebProxy(proxyuri, false) { Credentials = CredentialCache.DefaultCredentials };
+                        }
+                        webClient.DownloadFile(downloadUrl, nugetPackageOutputPath);
                         break;
                     }
                     catch (WebException e)
@@ -84,7 +92,7 @@ namespace NuSave.Core
                         Console.ResetColor();
                         Thread.Sleep(1000);
                     }
-                }   
+                }
             }
         }
 
@@ -167,7 +175,7 @@ namespace NuSave.Core
         {
             return Path.Combine(_outputDirectory, id.ToLower(), version);
         }
-        
+
         bool PackageExists(string id, string version)
         {
             string nugetPackagePath = GetNuGetPackagePath(id, version);
