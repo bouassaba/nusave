@@ -200,8 +200,9 @@ namespace NuSave.Core
                     var found = Repository.FindPackage(
                         dependency.Id,
                         dependency.VersionSpec,
-                        true,
-                        true);
+                        _allowPreRelease,
+                        _allowUnlisted);
+
                     if (found == null)
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
