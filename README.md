@@ -18,7 +18,7 @@ Check the releases page for binaries, or build `NuSave.sln` .
 
 Don't forget to add the location of `NuSave.exe` to the `$PATH`.
 
-.NET Framework 4.6.2 is need to build and run `NuSave`.
+.NET Framework 4.6.2 is needed to build and run `NuSave`.
 
 ## More
 
