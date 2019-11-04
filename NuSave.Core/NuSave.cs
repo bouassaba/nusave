@@ -21,6 +21,7 @@ namespace NuSave.Core
         readonly bool _allowUnlisted;
         readonly bool _silent;
         readonly bool _json;
+        private readonly bool _useDefaultProxyConfig;
         List<IPackage> _toDownload = new List<IPackage>();
 
         public Downloader(
@@ -31,7 +32,8 @@ namespace NuSave.Core
             bool allowPreRelease = false,
             bool allowUnlisted = false,
             bool silent = false,
-            bool json = false)
+            bool json = false,
+            bool useDefaultProxyConfig = false)
         {
             _source = source;
             _outputDirectory = outputDirectory;
@@ -40,6 +42,7 @@ namespace NuSave.Core
             _allowPreRelease = allowPreRelease;
             _allowUnlisted = allowUnlisted;
             _json = json;
+            _useDefaultProxyConfig = useDefaultProxyConfig;
             _silent = _json ? true : silent;
         }
 
@@ -63,7 +66,7 @@ namespace NuSave.Core
                     Console.WriteLine($"{package.Id} {package.Version}");
                 }
 
-                var dataServcePackage = (DataServicePackage)package;
+                var dataServicePackage = (DataServicePackage)package;
                 // We keep retrying forever until the user will press Ctrl-C
                 // This lets the user decide when to stop retrying.
                 // The reason for this is that building the dependencies list is expensive
@@ -74,13 +77,16 @@ namespace NuSave.Core
                     try
                     {
                         string nugetPackageOutputPath = GetNuGetPackagePath(package.Id, package.Version.ToString());
-                        var downloadUrl = dataServcePackage.DownloadUrl;
-                        var proxy = webClient.Proxy;
-                        if (proxy != null)
+                        var downloadUrl = dataServicePackage.DownloadUrl;
+                        if (_useDefaultProxyConfig)
                         {
-                            var proxyuri = proxy.GetProxy(downloadUrl).ToString();
-                            webClient.UseDefaultCredentials = true;
-                            webClient.Proxy = new WebProxy(proxyuri, false) { Credentials = CredentialCache.DefaultCredentials };
+                            var proxy = webClient.Proxy;
+                            if (proxy != null)
+                            {
+                                var proxyUri = proxy.GetProxy(downloadUrl).ToString();
+                                webClient.UseDefaultCredentials = true;
+                                webClient.Proxy = new WebProxy(proxyUri, false) { Credentials = CredentialCache.DefaultCredentials };
+                            }
                         }
                         webClient.DownloadFile(downloadUrl, nugetPackageOutputPath);
                         break;
