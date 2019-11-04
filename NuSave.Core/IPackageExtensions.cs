@@ -3,11 +3,11 @@ using System.IO;
 
 namespace NuSave.Core
 {
-    public static class IPackageExtensions
+  public static class IPackageExtensions
+  {
+    public static string GetFileName(this IPackage package)
     {
-        public static string GetFileName(this IPackage package)
-        {
-            return $"{package.Id}.{package.Version}.nupkg".ToLower();
-        }
+      return $"{package.Id}.{package.Version}.nupkg".ToLower();
     }
+  }
 }
