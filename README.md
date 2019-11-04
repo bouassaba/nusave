@@ -4,7 +4,7 @@
 
 NuSave gives you the ability to download and save a nuget package from nuget.org or any other source, with all it's dependency tree to your computer for offline use. Here is an example:
 
-```bash
+```powershell
 NuSave -id "Newtonsoft.Json" -version "9.0.1" -outputDirectory "C:\MyLocalFeed"
 ```
 
@@ -24,8 +24,13 @@ Don't forget to add the location of `NuSave.exe` to the `$PATH`.
 
 ### Download nuget packages from a .csproj MSBuild project
 
-```shell
+```powershell
 NuSave -msbuildProject "/path/to/project.csproj" -outputDirectory "/path/to/output/dir"
+```
+
+### Use a default proxy configuration
+```powershell
+NuSave -id "Newtonsoft.Json" -version "9.0.1" -outputDirectory "C:\MyLocalFeed" -useDefaultProxyConfig
 ```
 
 ### Pipe the JSON result to PowerShell's `Out-GridView`

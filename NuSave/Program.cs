@@ -22,6 +22,7 @@ namespace NuSave.CLI
             var silent = app.Option("-silent", "Don't write anything to stdout", CommandOptionType.NoValue);
             var noDownload = app.Option("-noDownload", "Don't download packages", CommandOptionType.NoValue);
             var json = app.Option("-json", "Dependencies list will be printed in json format", CommandOptionType.NoValue);
+            var useDefaultProxyConfig = app.Option("-useDefaultProxyConfig", "Uses a default proxy configuration", CommandOptionType.NoValue);
 
             app.Command("version", (target) => { })
             .OnExecute(() =>
@@ -45,7 +46,8 @@ namespace NuSave.CLI
                     allowPreRelease: allowPreRelease.HasValue(),
                     allowUnlisted: allowUnlisted.HasValue(),
                     silent: silent.HasValue(),
-                    json: json.HasValue());
+                    json: json.HasValue(),
+                    useDefaultProxyConfig: useDefaultProxyConfig.HasValue());
 
                 if (msbuildProject.HasValue())
                 {
