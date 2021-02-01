@@ -1,14 +1,14 @@
-using Microsoft.Extensions.CommandLineUtils;
-using NuSave.Core;
-using System;
-
-namespace NuSave.CLI
+namespace NuSave.New
 {
-  class Program
-  {
-    const string Version = "1.0.0";
+  using System;
+  using Core;
+  using Microsoft.Extensions.CommandLineUtils;
 
-    static void Main(string[] args)
+  internal class Program
+  {
+    private const string Version = "2.0.0";
+
+    private static void Main(string[] args)
     {
       CommandLineApplication app = new CommandLineApplication();
 
@@ -22,13 +22,12 @@ namespace NuSave.CLI
       var silent = app.Option("-silent", "Don't write anything to stdout", CommandOptionType.NoValue);
       var noDownload = app.Option("-noDownload", "Don't download packages", CommandOptionType.NoValue);
       var json = app.Option("-json", "Dependencies list will be printed in json format", CommandOptionType.NoValue);
-      var useDefaultProxyConfig = app.Option("-useDefaultProxyConfig", "Uses a default proxy configuration",
-        CommandOptionType.NoValue);
+      app.Option("-useDefaultProxyConfig", "Uses a default proxy configuration (deprecated, ignored)", CommandOptionType.NoValue);
 
       app.Command("version", (target) => { })
         .OnExecute(() =>
         {
-          string revision = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.Revision.ToString();
+          string revision = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.Revision.ToString();
           Console.WriteLine($"{Version}+{revision}");
           return 0;
         });
@@ -47,8 +46,7 @@ namespace NuSave.CLI
           allowPreRelease: allowPreRelease.HasValue(),
           allowUnlisted: allowUnlisted.HasValue(),
           silent: silent.HasValue(),
-          json: json.HasValue(),
-          useDefaultProxyConfig: useDefaultProxyConfig.HasValue());
+          json: json.HasValue());
 
         if (msbuildProject.HasValue())
         {
