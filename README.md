@@ -2,26 +2,27 @@
 
 ## Usage
 
+### Download NuGet package
 nusave gives you the ability to download and save a NuGet package from nuget.org or any other source, with its dependency tree to your computer for offline use. Here is an example:
 
 ```shell
-cache package "Newtonsoft.Json@12.0.3" --targetFramework ".NETStandard,Version=v1.0" --cacheDir "C:\MyLocalFeed"
+nusave cache package "Newtonsoft.Json@12.0.3" --targetFramework ".NETStandard,Version=v1.0" --cacheDir "C:\MyLocalFeed"
 ```
 
 The command above will bring packages that Newtonsoft.Json depend on, if there are any duplicates, they will be ignored. `nusave` checks for existing `.nupkg` files and for hierarchical package folders.
 
 The combination of `nusave` and `NuGet.Server` gives you the ability to download all packages needed on your laptop or workstation for offline use.
 
-## Download nuget packages from a `.csproj` file
+### Download nuget packages from a `.csproj` file
 
 ```shell
-cache csproj "C:\path\to\project.csproj" --cacheDir "C:\MyLocalFeed"
+nusave cache csproj "C:\path\to\project.csproj" --cacheDir "C:\MyLocalFeed"
 ```
 
-## Download nuget packages from a `.sln` file
+### Download nuget packages from a `.sln` file
 
 ```shell
-cache csproj "C:\path\to\solution.sln" --cacheDir "C:\MyLocalFeed"
+nusave cache csproj "C:\path\to\solution.sln" --cacheDir "C:\MyLocalFeed"
 ```
 
 ## Installation
