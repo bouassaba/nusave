@@ -1,13 +1,12 @@
-﻿using NuGet;
-using System.IO;
-
-namespace NuSave.Core
+﻿namespace NuSave.Core
 {
+  using NuGet.Protocol.Core.Types;
+
   public static class IPackageExtensions
   {
-    public static string GetFileName(this IPackage package)
+    public static string GetFileName(this IPackageSearchMetadata package)
     {
-      return $"{package.Id}.{package.Version}.nupkg".ToLower();
+      return $"{package.Identity.Id}.{package.Identity.Version}.nupkg".ToLower();
     }
   }
 }

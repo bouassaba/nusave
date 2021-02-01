@@ -3,11 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.25928.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave.Core", "NuSave.Core\NuSave.Core.csproj", "{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave.Core", "NuSave.Core\NuSave.Core.csproj", "{FE24E5C3-507C-4198-93B5-A012AF0408BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave", "NuSave\NuSave.csproj", "{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave", "NuSave\NuSave.csproj", "{8C7D84C7-3345-4567-8745-17C85EB93277}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave.Tests", "NuSave.Tests\NuSave.Tests.csproj", "{46778D2F-0BDD-493D-954D-5E163B7814C0}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Things", "Things", "{24ADCE77-9560-40CB-BE68-D5DE0B1A8351}"
+ProjectSection(SolutionItems) = preProject
+	README.md = README.md
+	LICENSE = LICENSE
+	HACKING.md = HACKING.md
+EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave.Tests", "NuSave.Tests\NuSave.Tests.csproj", "{81FD7525-AC02-470E-BD90-4A9F2866A2BC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,18 +22,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2D3F8E68-E92E-4491-BB4E-95789FC6CAD4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B07F6FB3-EEA0-4A26-99C6-7B6A86284E28}.Release|Any CPU.Build.0 = Release|Any CPU
-		{46778D2F-0BDD-493D-954D-5E163B7814C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{46778D2F-0BDD-493D-954D-5E163B7814C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{46778D2F-0BDD-493D-954D-5E163B7814C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{46778D2F-0BDD-493D-954D-5E163B7814C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE24E5C3-507C-4198-93B5-A012AF0408BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE24E5C3-507C-4198-93B5-A012AF0408BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE24E5C3-507C-4198-93B5-A012AF0408BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE24E5C3-507C-4198-93B5-A012AF0408BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C7D84C7-3345-4567-8745-17C85EB93277}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C7D84C7-3345-4567-8745-17C85EB93277}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C7D84C7-3345-4567-8745-17C85EB93277}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C7D84C7-3345-4567-8745-17C85EB93277}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81FD7525-AC02-470E-BD90-4A9F2866A2BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81FD7525-AC02-470E-BD90-4A9F2866A2BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81FD7525-AC02-470E-BD90-4A9F2866A2BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81FD7525-AC02-470E-BD90-4A9F2866A2BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

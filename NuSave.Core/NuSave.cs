@@ -1,28 +1,30 @@
-using Newtonsoft.Json;
-using NuGet;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Threading;
-using System.Xml.Linq;
-
 namespace NuSave.Core
 {
+  using Newtonsoft.Json;
+  using System;
+  using System.Collections.Generic;
+  using System.IO;
+  using System.Linq;
+  using System.Net;
+  using System.Threading;
+  using System.Xml.Linq;
+  using NuGet.Common;
+  using NuGet.Protocol;
+  using NuGet.Protocol.Core.Types;
+  using NuGet.Versioning;
+
   public class Downloader
   {
-    const string DefaultSource = "https://packages.nuget.org/api/v2";
-    readonly string _source;
-    readonly string _outputDirectory;
-    readonly string _id;
-    readonly string _version;
-    readonly bool _allowPreRelease;
-    readonly bool _allowUnlisted;
-    readonly bool _silent;
-    readonly bool _json;
-    private readonly bool _useDefaultProxyConfig;
-    List<IPackage> _toDownload = new List<IPackage>();
+    private const string DefaultSource = "https://api.nuget.org/v3/index.json";
+    private readonly string _source;
+    private readonly string _outputDirectory;
+    private readonly string _id;
+    private readonly string _version;
+    private readonly bool _allowPreRelease;
+    private readonly bool _allowUnlisted;
+    private readonly bool _silent;
+    private readonly bool _json;
+    private List<IPackageSearchMetadata> _toDownload = new();
 
     public Downloader(
       string source,
@@ -32,8 +34,7 @@ namespace NuSave.Core
       bool allowPreRelease = false,
       bool allowUnlisted = false,
       bool silent = false,
-      bool json = false,
-      bool useDefaultProxyConfig = false)
+      bool json = false)
     {
       _source = source;
       _outputDirectory = outputDirectory;
@@ -42,8 +43,7 @@ namespace NuSave.Core
       _allowPreRelease = allowPreRelease;
       _allowUnlisted = allowUnlisted;
       _json = json;
-      _useDefaultProxyConfig = useDefaultProxyConfig;
-      _silent = _json ? true : silent;
+      _silent = _json || silent;
     }
 
     public void Download()
@@ -55,18 +55,18 @@ namespace NuSave.Core
         Console.ResetColor();
       }
 
-      var webClient = new WebClient();
-
       foreach (var package in _toDownload)
       {
-        if (PackageExists(package.Id, package.Version.ToString())) continue;
+        if (PackageExists(package.Identity.Id, package.Identity.Version.ToString()))
+        {
+          continue;
+        }
 
         if (!_silent)
         {
-          Console.WriteLine($"{package.Id} {package.Version}");
+          Console.WriteLine($"{package.Identity.Id} {package.Identity.Version}");
         }
 
-        var dataServicePackage = (DataServicePackage) package;
         // We keep retrying forever until the user will press Ctrl-C
         // This lets the user decide when to stop retrying.
         // The reason for this is that building the dependencies list is expensive
@@ -76,20 +76,18 @@ namespace NuSave.Core
         {
           try
           {
-            string nugetPackageOutputPath = GetNuGetPackagePath(package.Id, package.Version.ToString());
-            var downloadUrl = dataServicePackage.DownloadUrl;
-            if (_useDefaultProxyConfig)
-            {
-              var proxy = webClient.Proxy;
-              if (proxy != null)
-              {
-                var proxyUri = proxy.GetProxy(downloadUrl).ToString();
-                webClient.UseDefaultCredentials = true;
-                webClient.Proxy = new WebProxy(proxyUri, false) {Credentials = CredentialCache.DefaultCredentials};
-              }
-            }
+            string nugetPackageOutputPath = GetNuGetPackagePath(package.Identity.Id, package.Identity.Version.ToString());
+            using FileStream packageStream = File.Create(nugetPackageOutputPath);
 
-            webClient.DownloadFile(downloadUrl, nugetPackageOutputPath);
+            FindPackageByIdResource resource = SourceRepository.GetResource<FindPackageByIdResource>();
+            resource.CopyNupkgToStreamAsync(
+              package.Identity.Id,
+              package.Identity.Version,
+              packageStream,
+              SourceCacheContext,
+              NullLogger.Instance,
+              CancellationToken.None).Wait();
+
             break;
           }
           catch (WebException e)
@@ -107,7 +105,7 @@ namespace NuSave.Core
     {
       if (_toDownload != null && _toDownload.Count > 1)
       {
-        _toDownload = new List<IPackage>();
+        _toDownload = new List<IPackageSearchMetadata>();
       }
 
       if (!_silent)
@@ -119,11 +117,12 @@ namespace NuSave.Core
 
       if (csprojPath == null)
       {
-        IPackage package = string.IsNullOrWhiteSpace(_version)
-          ? Repository.FindPackage(_id)
-          : Repository.FindPackage(_id, SemanticVersion.Parse(_version), _allowPreRelease, _allowUnlisted);
+        IPackageSearchMetadata package = FindPackage(_id, SemanticVersion.Parse(_version), _allowPreRelease, _allowUnlisted);
 
-        if (package == null) throw new Exception("Could not resolve package");
+        if (package == null)
+        {
+          throw new Exception("Could not resolve package");
+        }
 
         ResolveDependencies(package);
       }
@@ -134,23 +133,23 @@ namespace NuSave.Core
 
         IEnumerable<MsBuildPackageRef> references = csprojDoc
           .Element(@namespace + "Project")
-          .Elements(@namespace + "ItemGroup")
+          ?.Elements(@namespace + "ItemGroup")
           .Elements(@namespace + "PackageReference")
           .Select(e => new MsBuildPackageRef()
           {
-            Include = e.Attribute("Include").Value,
-            Version = e.Element(@namespace + "Version").Value
+            Include = e.Attribute("Include")?.Value,
+            Version = e.Element(@namespace + "Version")?.Value
           });
         ResolveDependencies(references);
 
         IEnumerable<MsBuildPackageRef> dotnetCliToolReferences = csprojDoc
           .Element(@namespace + "Project")
-          .Elements(@namespace + "ItemGroup")
+          ?.Elements(@namespace + "ItemGroup")
           .Elements(@namespace + "DotNetCliToolReference")
           .Select(e => new MsBuildPackageRef()
           {
-            Include = e.Attribute("Include").Value,
-            Version = e.Element(@namespace + "Version").Value
+            Include = e.Attribute("Include")?.Value,
+            Version = e.Element(@namespace + "Version")?.Value
           });
         ResolveDependencies(dotnetCliToolReferences);
       }
@@ -161,7 +160,7 @@ namespace NuSave.Core
       }
     }
 
-    void ResolveDependencies(IEnumerable<MsBuildPackageRef> references)
+    private void ResolveDependencies(IEnumerable<MsBuildPackageRef> references)
     {
       foreach (var packageRef in references)
       {
@@ -173,85 +172,93 @@ namespace NuSave.Core
       }
     }
 
-    string GetNuGetPackagePath(string id, string version)
+    private string GetNuGetPackagePath(string id, string version)
     {
       return Path.Combine(_outputDirectory, $"{id}.{version}.nupkg".ToLower());
     }
 
-    string GetNuGetHierarchialDirPath(string id, string version)
+    private string GetNuGetHierarchicalDirPath(string id, string version)
     {
       return Path.Combine(_outputDirectory, id.ToLower(), version);
     }
 
-    bool PackageExists(string id, string version)
+    private bool PackageExists(string id, string version)
     {
       string nugetPackagePath = GetNuGetPackagePath(id, version);
-      if (File.Exists(nugetPackagePath)) return true;
+      if (File.Exists(nugetPackagePath))
+      {
+        return true;
+      }
 
-      string nuGetHierarchialDirPath = GetNuGetHierarchialDirPath(id, version);
-      if (Directory.Exists(nuGetHierarchialDirPath)) return true;
+      string nuGetHierarchicalDirPath = GetNuGetHierarchicalDirPath(id, version);
+      if (Directory.Exists(nuGetHierarchicalDirPath))
+      {
+        return true;
+      }
 
       return false;
     }
 
-    void ResolveDependencies(MsBuildPackageRef msBuildpackageRef)
+    private void ResolveDependencies(MsBuildPackageRef msBuildPackageRef)
     {
-      IPackage nugetPackage = Repository.FindPackage(msBuildpackageRef.Include,
-        SemanticVersion.Parse(msBuildpackageRef.Version), true, true);
+      IPackageSearchMetadata nugetPackage = FindPackage(msBuildPackageRef.Include,
+        SemanticVersion.Parse(msBuildPackageRef.Version), true, true);
       ResolveDependencies(nugetPackage);
     }
 
-    void ResolveDependencies(IPackage package)
+    private void ResolveDependencies(IPackageSearchMetadata package)
     {
-      if (PackageExists(package.Id, package.Version.ToString())) return;
+      if (PackageExists(package.Identity.Id, package.Identity.Version.ToString()))
+      {
+        return;
+      }
 
       _toDownload.Add(package);
 
       foreach (var set in package.DependencySets)
       {
-        foreach (var dependency in set.Dependencies)
+        foreach (var dependency in set.Packages)
         {
-          if (PackageExists(dependency.Id, dependency.VersionSpec.ToString())) continue;
+          if (PackageExists(dependency.Id, dependency.VersionRange.ToShortString()))
+          {
+            continue;
+          }
 
-          var found = Repository.FindPackage(
+          var found = FindPackage(
             dependency.Id,
-            dependency.VersionSpec,
+            SemanticVersion.Parse(dependency.VersionRange.ToShortString()),
             _allowPreRelease,
             _allowUnlisted);
 
           if (found == null)
           {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Could not resolve dependency: {dependency.Id} {dependency.VersionSpec.ToString()}");
+            Console.WriteLine($"Could not resolve dependency: {dependency.Id} {dependency.VersionRange.ToShortString()}");
             Console.ResetColor();
           }
           else
           {
-            if (!_toDownload.Any(p => p.Title == found.Title && p.Version == found.Version))
+            if (_toDownload.Any(p => p.Title == found.Title && p.Identity.Version == found.Identity.Version))
             {
-              _toDownload.Add(found);
-              if (!_silent)
-              {
-                Console.WriteLine($"{found.Id} {found.Version}");
-              }
-
-              ResolveDependencies(found);
+              continue;
             }
+
+            _toDownload.Add(found);
+
+            if (!_silent)
+            {
+              Console.WriteLine($"{found.Identity.Id} {found.Identity.Version}");
+            }
+
+            ResolveDependencies(found);
           }
         }
       }
     }
 
-    string GetSource()
+    private string GetSource()
     {
-      if (_source == null)
-      {
-        return DefaultSource;
-      }
-      else
-      {
-        return _source;
-      }
+      return _source ?? DefaultSource;
     }
 
     /// <summary>
@@ -265,8 +272,8 @@ namespace NuSave.Core
       {
         list.Add(new SimplifiedPackageInfo
         {
-          Id = p.Id,
-          Version = p.Version.ToString(),
+          Id = p.Identity.Id,
+          Version = p.Identity.Version.ToString(),
           Authors = string.Join(" ", p.Authors)
         });
       }
@@ -274,19 +281,33 @@ namespace NuSave.Core
       return list;
     }
 
-    IPackageRepository _repository;
-
-    IPackageRepository Repository
+    private IPackageSearchMetadata FindPackage(string id, SemanticVersion version, bool includePrerelease, bool includeUnlisted)
     {
-      get
+      PackageMetadataResource resource = SourceRepository.GetResource<PackageMetadataResource>();
+      List<IPackageSearchMetadata> packages = resource.GetMetadataAsync(
+        id,
+        includePrerelease: includePrerelease,
+        includeUnlisted: includeUnlisted,
+        SourceCacheContext,
+        NullLogger.Instance,
+        CancellationToken.None).Result.ToList();
+      foreach (var package in packages)
       {
-        if (_repository == null)
+        if (package.Identity.Version == version)
         {
-          _repository = PackageRepositoryFactory.Default.CreateRepository(GetSource());
+          return package;
         }
-
-        return _repository;
       }
+
+      return null;
     }
+
+    private SourceRepository _sourceRepository;
+
+    private SourceRepository SourceRepository => _sourceRepository ??= Repository.Factory.GetCoreV3(GetSource());
+
+    private SourceCacheContext _sourceCacheContext;
+
+    private SourceCacheContext SourceCacheContext => _sourceCacheContext ??= new SourceCacheContext();
   }
 }
