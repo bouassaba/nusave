@@ -44,6 +44,8 @@ namespace NuSave.Core
       _allowUnlisted = allowUnlisted;
       _json = json;
       _silent = _json || silent;
+
+      _outputDirectory = EnsureOutputDirectory(outputDirectory);
     }
 
     public void Download()
@@ -156,8 +158,54 @@ namespace NuSave.Core
 
       if (_json)
       {
-        Console.WriteLine(JsonConvert.SerializeObject(GetDependencies()));
+        Console.WriteLine(JsonConvert.SerializeObject(GetDependencies(), Formatting.Indented));
       }
+    }
+
+    /// <summary>
+    /// Convenience method that can be used in powershell in combination with Out-GridView
+    /// </summary>
+    /// <returns></returns>
+    public List<NuGetPackage> GetDependencies()
+    {
+      var list = new List<NuGetPackage>();
+      foreach (var p in _toDownload)
+      {
+        list.Add(new NuGetPackage
+        {
+          Id = p.Identity.Id,
+          Version = p.Identity.Version.ToString(),
+          Authors = string.Join(" ", p.Authors)
+        });
+      }
+
+      return list;
+    }
+
+    private string EnsureOutputDirectory(string value)
+    {
+      string outputDirectory = value;
+
+      if (!string.IsNullOrWhiteSpace(outputDirectory) && Directory.Exists(outputDirectory))
+      {
+        return outputDirectory;
+      }
+
+      if (string.IsNullOrWhiteSpace(outputDirectory))
+      {
+        outputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nusave");
+      }
+
+      Directory.CreateDirectory(outputDirectory);
+
+      if (!_silent)
+      {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"Using output directory: {outputDirectory}");
+        Console.ResetColor();
+      }
+
+      return outputDirectory;
     }
 
     private void ResolveDependencies(IEnumerable<MsBuildPackageRef> references)
@@ -259,26 +307,6 @@ namespace NuSave.Core
     private string GetSource()
     {
       return _source ?? DefaultSource;
-    }
-
-    /// <summary>
-    /// Convenience method that can be used in powershell in combination with Out-GridView
-    /// </summary>
-    /// <returns></returns>
-    public List<SimplifiedPackageInfo> GetDependencies()
-    {
-      var list = new List<SimplifiedPackageInfo>();
-      foreach (var p in _toDownload)
-      {
-        list.Add(new SimplifiedPackageInfo
-        {
-          Id = p.Identity.Id,
-          Version = p.Identity.Version.ToString(),
-          Authors = string.Join(" ", p.Authors)
-        });
-      }
-
-      return list;
     }
 
     private IPackageSearchMetadata FindPackage(string id, SemanticVersion version, bool includePrerelease, bool includeUnlisted)

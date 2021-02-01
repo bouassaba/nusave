@@ -20,25 +20,58 @@ Don't forget to add the location of `nusave.exe` or `nusave` to the `$PATH`.
 
 .NET 5 is needed to build and run nusave.
 
-## More
+## Download nuget packages from a `.csproj` file
 
-### Download nuget packages from a .csproj MSBuild project
-
-```powershell
+```shell
 nusave -msbuildProject "/path/to/project.csproj" -outputDirectory "/path/to/output/dir"
 ```
 
-### Pipe the JSON result to PowerShell's `Out-GridView`
+## JSON output
 
-`nusave` is able to output the dependency list without downloading it, and formatting the output as JSON, that way you can pipe the content to another program that will use this information to do other tasks, this can be the case for build scripts. The following command will pipe the content to PowerShell's `Out-GridView` :
-
-```powershell
-nusave -id "Newtonsoft.Json" -version "12.0.3" -noDownload -json | ConvertFrom-Json | Out-GridView
+`nusave` is able to output the dependency list as JSON without downloading it:
+```shell
+./nusave -id "System.Collections" -version "4.3.0" -noDownload -json
 ```
-
-The result:
-
-![outgridview](https://raw.githubusercontent.com/anass-b/nusave/master/readme/outgridview.png)
+Result:
+```json
+[
+  {
+    "id": "System.Collections",
+    "version": "4.3.0",
+    "authors": "Microsoft"
+  },
+  {
+    "id": "Microsoft.NETCore.Platforms",
+    "version": "1.1.0",
+    "authors": "Microsoft"
+  },
+  {
+    "id": "Microsoft.NETCore.Platforms",
+    "version": "1.1.0",
+    "authors": "Microsoft"
+  },
+  {
+    "id": "Microsoft.NETCore.Targets",
+    "version": "1.1.0",
+    "authors": "Microsoft"
+  },
+  {
+    "id": "Microsoft.NETCore.Targets",
+    "version": "1.1.0",
+    "authors": "Microsoft"
+  },
+  {
+    "id": "System.Runtime",
+    "version": "4.3.0",
+    "authors": "Microsoft"
+  },
+  {
+    "id": "System.Runtime",
+    "version": "4.3.0",
+    "authors": "Microsoft"
+  }
+]
+```
 
 Check `nusave -help` for more command line options.
 
