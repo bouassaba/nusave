@@ -4,7 +4,7 @@
 
 nusave gives you the ability to download and save a NuGet package from nuget.org or any other source, with its dependency tree to your computer for offline use. Here is an example:
 
-```powershell
+```shell
 nusave -id "Newtonsoft.Json" -version "12.0.3" -outputDirectory "C:\MyLocalFeed"
 ```
 
