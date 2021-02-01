@@ -267,21 +267,21 @@ namespace NuSave.Core
       {
         foreach (var dependency in set.Packages)
         {
-          if (PackageExists(dependency.Id, dependency.VersionRange.ToShortString()))
+          if (PackageExists(dependency.Id, VersionRangeToVersion(dependency.VersionRange).ToString()))
           {
             continue;
           }
 
           var found = FindPackage(
             dependency.Id,
-            SemanticVersion.Parse(dependency.VersionRange.ToShortString()),
+            VersionRangeToVersion(dependency.VersionRange),
             _allowPreRelease,
             _allowUnlisted);
 
           if (found == null)
           {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Could not resolve dependency: {dependency.Id} {dependency.VersionRange.ToShortString()}");
+            Console.WriteLine($"Could not resolve dependency: {dependency.Id} {VersionRangeToVersion(dependency.VersionRange).ToString()}");
             Console.ResetColor();
           }
           else
@@ -302,6 +302,11 @@ namespace NuSave.Core
           }
         }
       }
+    }
+
+    private NuGetVersion VersionRangeToVersion(VersionRange versionRange)
+    {
+      return versionRange.MaxVersion != null ? versionRange.MaxVersion : versionRange.MinVersion;
     }
 
     private string GetSource()
