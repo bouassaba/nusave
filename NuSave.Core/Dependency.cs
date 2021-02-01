@@ -1,14 +1,15 @@
 ﻿namespace NuSave.Core
 {
   using Newtonsoft.Json;
+  using NuGet.Versioning;
 
-  public class NuGetPackage
+  public class Dependency
   {
     [JsonProperty("id")]
     public string Id { get; set; }
 
     [JsonProperty("version")]
-    public string Version { get; set; }
+    public NuGetVersion Version { get; set; }
 
     [JsonProperty("authors")]
     public string Authors { get; set; }

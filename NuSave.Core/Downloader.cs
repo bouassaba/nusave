@@ -1,73 +1,56 @@
 namespace NuSave.Core
 {
-  using Newtonsoft.Json;
   using System;
   using System.Collections.Generic;
   using System.IO;
-  using System.Linq;
   using System.Net;
   using System.Threading;
-  using System.Xml.Linq;
   using NuGet.Common;
   using NuGet.Protocol;
   using NuGet.Protocol.Core.Types;
-  using NuGet.Versioning;
 
   public class Downloader
   {
-    private const string DefaultSource = "https://api.nuget.org/v3/index.json";
-    private readonly string _source;
-    private readonly string _outputDirectory;
-    private readonly string _id;
-    private readonly string _version;
-    private readonly bool _allowPreRelease;
-    private readonly bool _allowUnlisted;
-    private readonly bool _silent;
-    private readonly bool _json;
-    private List<IPackageSearchMetadata> _toDownload = new();
+    private readonly Options _options;
+    private readonly DependencyResolver _dependencyResolver;
+    private readonly Cache _cache;
 
-    public Downloader(
-      string source,
-      string outputDirectory,
-      string id,
-      string version,
-      bool allowPreRelease = false,
-      bool allowUnlisted = false,
-      bool silent = false,
-      bool json = false)
+    public class Options
     {
-      _source = source;
-      _outputDirectory = outputDirectory;
-      _id = id;
-      _version = version;
-      _allowPreRelease = allowPreRelease;
-      _allowUnlisted = allowUnlisted;
-      _json = json;
-      _silent = _json || silent;
+      public string Source { get; set; }
 
-      _outputDirectory = EnsureOutputDirectory(outputDirectory);
+      public bool Silent { get; set; }
     }
+
+    public Downloader(Options options, DependencyResolver dependencyResolver, Cache cache)
+    {
+      _options = options;
+      _dependencyResolver = dependencyResolver;
+      _cache = cache;
+    }
+
+    private SourceRepository _sourceRepository;
+
+    private SourceRepository SourceRepository => _sourceRepository ??= Repository.Factory.GetCoreV3(_options.Source);
+
+    private SourceCacheContext _sourceCacheContext;
+
+    private SourceCacheContext SourceCacheContext => _sourceCacheContext ??= new SourceCacheContext();
 
     public void Download()
     {
-      if (!_silent)
-      {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"Downloading");
-        Console.ResetColor();
-      }
+      IEnumerable<Dependency> dependencies = _dependencyResolver.Resolve();
 
-      foreach (var package in _toDownload)
+      Log("Downloading", ConsoleColor.Yellow);
+
+      foreach (var dependency in dependencies)
       {
-        if (PackageExists(package.Identity.Id, package.Identity.Version.ToString()))
+        if (_cache.PackageExists(dependency.Id, dependency.Version))
         {
           continue;
         }
 
-        if (!_silent)
-        {
-          Console.WriteLine($"{package.Identity.Id} {package.Identity.Version}");
-        }
+        Log($"{dependency.Id} {dependency.Version}");
 
         // We keep retrying forever until the user will press Ctrl-C
         // This lets the user decide when to stop retrying.
@@ -78,13 +61,13 @@ namespace NuSave.Core
         {
           try
           {
-            string nugetPackageOutputPath = GetNuGetPackagePath(package.Identity.Id, package.Identity.Version.ToString());
+            string nugetPackageOutputPath = _cache.GetNuGetPackagePath(dependency.Id, dependency.Version);
             using FileStream packageStream = File.Create(nugetPackageOutputPath);
 
             FindPackageByIdResource resource = SourceRepository.GetResource<FindPackageByIdResource>();
             resource.CopyNupkgToStreamAsync(
-              package.Identity.Id,
-              package.Identity.Version,
+              dependency.Id,
+              dependency.Version,
               packageStream,
               SourceCacheContext,
               NullLogger.Instance,
@@ -94,253 +77,33 @@ namespace NuSave.Core
           }
           catch (WebException e)
           {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"{e.Message}. Retrying in one second...");
-            Console.ResetColor();
+            Log($"{e.Message}. Retrying in one second...", ConsoleColor.Red);
             Thread.Sleep(1000);
           }
         }
       }
     }
 
-    public void ResolveDependencies(string csprojPath = null)
+    private void Log(string message)
     {
-      if (_toDownload != null && _toDownload.Count > 1)
-      {
-        _toDownload = new List<IPackageSearchMetadata>();
-      }
-
-      if (!_silent)
-      {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"Resolving dependencies");
-        Console.ResetColor();
-      }
-
-      if (csprojPath == null)
-      {
-        IPackageSearchMetadata package = FindPackage(_id, SemanticVersion.Parse(_version), _allowPreRelease, _allowUnlisted);
-
-        if (package == null)
-        {
-          throw new Exception("Could not resolve package");
-        }
-
-        ResolveDependencies(package);
-      }
-      else
-      {
-        XNamespace @namespace = "http://schemas.microsoft.com/developer/msbuild/2003";
-        XDocument csprojDoc = XDocument.Load(csprojPath);
-
-        IEnumerable<MsBuildPackageRef> references = csprojDoc
-          .Element(@namespace + "Project")
-          ?.Elements(@namespace + "ItemGroup")
-          .Elements(@namespace + "PackageReference")
-          .Select(e => new MsBuildPackageRef()
-          {
-            Include = e.Attribute("Include")?.Value,
-            Version = e.Element(@namespace + "Version")?.Value
-          });
-        ResolveDependencies(references);
-
-        IEnumerable<MsBuildPackageRef> dotnetCliToolReferences = csprojDoc
-          .Element(@namespace + "Project")
-          ?.Elements(@namespace + "ItemGroup")
-          .Elements(@namespace + "DotNetCliToolReference")
-          .Select(e => new MsBuildPackageRef()
-          {
-            Include = e.Attribute("Include")?.Value,
-            Version = e.Element(@namespace + "Version")?.Value
-          });
-        ResolveDependencies(dotnetCliToolReferences);
-      }
-
-      if (_json)
-      {
-        Console.WriteLine(JsonConvert.SerializeObject(GetDependencies(), Formatting.Indented));
-      }
-    }
-
-    /// <summary>
-    /// Convenience method that can be used in powershell in combination with Out-GridView
-    /// </summary>
-    /// <returns></returns>
-    public List<NuGetPackage> GetDependencies()
-    {
-      var list = new List<NuGetPackage>();
-      foreach (var p in _toDownload)
-      {
-        list.Add(new NuGetPackage
-        {
-          Id = p.Identity.Id,
-          Version = p.Identity.Version.ToString(),
-          Authors = string.Join(" ", p.Authors)
-        });
-      }
-
-      return list;
-    }
-
-    private string EnsureOutputDirectory(string value)
-    {
-      string outputDirectory = value;
-
-      if (!string.IsNullOrWhiteSpace(outputDirectory) && Directory.Exists(outputDirectory))
-      {
-        return outputDirectory;
-      }
-
-      if (string.IsNullOrWhiteSpace(outputDirectory))
-      {
-        outputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nusave");
-      }
-
-      Directory.CreateDirectory(outputDirectory);
-
-      if (!_silent)
-      {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine($"Using output directory: {outputDirectory}");
-        Console.ResetColor();
-      }
-
-      return outputDirectory;
-    }
-
-    private void ResolveDependencies(IEnumerable<MsBuildPackageRef> references)
-    {
-      foreach (var packageRef in references)
-      {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"{packageRef.Include} {packageRef.Version}");
-        Console.ResetColor();
-
-        ResolveDependencies(packageRef);
-      }
-    }
-
-    private string GetNuGetPackagePath(string id, string version)
-    {
-      return Path.Combine(_outputDirectory, $"{id}.{version}.nupkg".ToLower());
-    }
-
-    private string GetNuGetHierarchicalDirPath(string id, string version)
-    {
-      return Path.Combine(_outputDirectory, id.ToLower(), version);
-    }
-
-    private bool PackageExists(string id, string version)
-    {
-      string nugetPackagePath = GetNuGetPackagePath(id, version);
-      if (File.Exists(nugetPackagePath))
-      {
-        return true;
-      }
-
-      string nuGetHierarchicalDirPath = GetNuGetHierarchicalDirPath(id, version);
-      if (Directory.Exists(nuGetHierarchicalDirPath))
-      {
-        return true;
-      }
-
-      return false;
-    }
-
-    private void ResolveDependencies(MsBuildPackageRef msBuildPackageRef)
-    {
-      IPackageSearchMetadata nugetPackage = FindPackage(msBuildPackageRef.Include,
-        SemanticVersion.Parse(msBuildPackageRef.Version), true, true);
-      ResolveDependencies(nugetPackage);
-    }
-
-    private void ResolveDependencies(IPackageSearchMetadata package)
-    {
-      if (PackageExists(package.Identity.Id, package.Identity.Version.ToString()))
+      if (_options.Silent)
       {
         return;
       }
 
-      _toDownload.Add(package);
+      Console.WriteLine(message);
+    }
 
-      foreach (var set in package.DependencySets)
+    private void Log(string message, ConsoleColor consoleColor)
+    {
+      if (_options.Silent)
       {
-        foreach (var dependency in set.Packages)
-        {
-          if (PackageExists(dependency.Id, VersionRangeToVersion(dependency.VersionRange).ToString()))
-          {
-            continue;
-          }
-
-          var found = FindPackage(
-            dependency.Id,
-            VersionRangeToVersion(dependency.VersionRange),
-            _allowPreRelease,
-            _allowUnlisted);
-
-          if (found == null)
-          {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Could not resolve dependency: {dependency.Id} {VersionRangeToVersion(dependency.VersionRange).ToString()}");
-            Console.ResetColor();
-          }
-          else
-          {
-            if (_toDownload.Any(p => p.Title == found.Title && p.Identity.Version == found.Identity.Version))
-            {
-              continue;
-            }
-
-            _toDownload.Add(found);
-
-            if (!_silent)
-            {
-              Console.WriteLine($"{found.Identity.Id} {found.Identity.Version}");
-            }
-
-            ResolveDependencies(found);
-          }
-        }
-      }
-    }
-
-    private NuGetVersion VersionRangeToVersion(VersionRange versionRange)
-    {
-      return versionRange.MaxVersion != null ? versionRange.MaxVersion : versionRange.MinVersion;
-    }
-
-    private string GetSource()
-    {
-      return _source ?? DefaultSource;
-    }
-
-    private IPackageSearchMetadata FindPackage(string id, SemanticVersion version, bool includePrerelease, bool includeUnlisted)
-    {
-      PackageMetadataResource resource = SourceRepository.GetResource<PackageMetadataResource>();
-      List<IPackageSearchMetadata> packages = resource.GetMetadataAsync(
-        id,
-        includePrerelease: includePrerelease,
-        includeUnlisted: includeUnlisted,
-        SourceCacheContext,
-        NullLogger.Instance,
-        CancellationToken.None).Result.ToList();
-      foreach (var package in packages)
-      {
-        if (package.Identity.Version == version)
-        {
-          return package;
-        }
+        return;
       }
 
-      return null;
+      Console.ForegroundColor = consoleColor;
+      Console.WriteLine(message);
+      Console.ResetColor();
     }
-
-    private SourceRepository _sourceRepository;
-
-    private SourceRepository SourceRepository => _sourceRepository ??= Repository.Factory.GetCoreV3(GetSource());
-
-    private SourceCacheContext _sourceCacheContext;
-
-    private SourceCacheContext SourceCacheContext => _sourceCacheContext ??= new SourceCacheContext();
   }
 }
