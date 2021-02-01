@@ -1,6 +1,7 @@
-namespace NuSave.New
+namespace NuSave
 {
   using System;
+  using System.IO;
   using Core;
   using Microsoft.Extensions.CommandLineUtils;
 
@@ -36,11 +37,9 @@ namespace NuSave.New
 
       app.OnExecute(() =>
       {
-        string outputDirectoryStr = noDownload.HasValue() ? null : outputDirectory.Value();
-
         var downloader = new Downloader(
           source: source.Value(),
-          outputDirectory: outputDirectoryStr,
+          outputDirectory: outputDirectory.Value(),
           id: packageId.Value(),
           version: packageVersion.Value(),
           allowPreRelease: allowPreRelease.HasValue(),

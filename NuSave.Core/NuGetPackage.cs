@@ -1,11 +1,16 @@
 ﻿namespace NuSave.Core
 {
-  public class SimplifiedPackageInfo
+  using Newtonsoft.Json;
+
+  public class NuGetPackage
   {
+    [JsonProperty("id")]
     public string Id { get; set; }
 
+    [JsonProperty("version")]
     public string Version { get; set; }
 
+    [JsonProperty("authors")]
     public string Authors { get; set; }
   }
 }

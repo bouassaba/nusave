@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.25928.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave.Core", "NuSave.Core\NuSave.Core.csproj", "{FE24E5C3-507C-4198-93B5-A012AF0408BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuSave", "NuSave\NuSave.csproj", "{8C7D84C7-3345-4567-8745-17C85EB93277}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nusave", "nusave\nusave.csproj", "{8C7D84C7-3345-4567-8745-17C85EB93277}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Things", "Things", "{24ADCE77-9560-40CB-BE68-D5DE0B1A8351}"
 ProjectSection(SolutionItems) = preProject
