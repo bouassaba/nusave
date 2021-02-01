@@ -39,11 +39,9 @@ namespace NuSave.Core
 
     public void Download()
     {
-      IEnumerable<Dependency> dependencies = _dependencyResolver.Resolve();
+      Log("Downloading ⚡️", ConsoleColor.Yellow);
 
-      Log("Downloading", ConsoleColor.Yellow);
-
-      foreach (var dependency in dependencies)
+      foreach (var dependency in _dependencyResolver.Dependencies)
       {
         if (_cache.PackageExists(dependency.Id, dependency.Version))
         {
@@ -82,6 +80,8 @@ namespace NuSave.Core
           }
         }
       }
+      
+      Log("Done 🎉", ConsoleColor.Yellow);
     }
 
     private void Log(string message)

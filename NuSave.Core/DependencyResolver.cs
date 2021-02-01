@@ -2,9 +2,12 @@ namespace NuSave.Core
 {
   using System;
   using System.Collections.Generic;
+  using System.IO;
   using System.Linq;
   using System.Threading;
-  using System.Xml.Linq;
+  using System.Xml;
+  using Microsoft.Build.Construction;
+  using Newtonsoft.Json.Linq;
   using NuGet.Common;
   using NuGet.Protocol;
   using NuGet.Protocol.Core.Types;
@@ -17,12 +20,6 @@ namespace NuSave.Core
       public string Source { get; set; }
 
       public string TargetFramework { get; set; }
-
-      public string MsBuildProject { get; set; }
-
-      public string Id { get; set; }
-
-      public string Version { get; set; }
 
       public bool AllowPreRelease { get; set; }
 
@@ -43,6 +40,8 @@ namespace NuSave.Core
       _cache = cache;
     }
 
+    public IEnumerable<Dependency> Dependencies => _dependencies;
+
     private SourceRepository _sourceRepository;
 
     private SourceRepository SourceRepository => _sourceRepository ??= Repository.Factory.GetCoreV3(_options.Source);
@@ -51,56 +50,70 @@ namespace NuSave.Core
 
     private SourceCacheContext SourceCacheContext => _sourceCacheContext ??= new SourceCacheContext();
 
-    public IEnumerable<Dependency> Resolve()
+    public void ResolveByIdAndVersion(string id, string version)
     {
+      Log($"Resolving dependencies for {id}@{version} 🪄️", ConsoleColor.Yellow);
+
       _dependencies = new List<Dependency>();
+      
+      IPackageSearchMetadata package = FindPackage(id, SemanticVersion.Parse(version), _options.AllowPreRelease,
+        _options.AllowUnlisted);
 
-      Log("Resolving dependencies", ConsoleColor.Yellow);
-
-      if (_options.MsBuildProject == null)
+      if (package == null)
       {
-        IPackageSearchMetadata package = FindPackage(_options.Id, SemanticVersion.Parse(_options.Version), _options.AllowPreRelease,
-          _options.AllowUnlisted);
-
-        if (package == null)
-        {
-          throw new Exception("Could not resolve package");
-        }
-
-        Resolve(package);
-      }
-      else
-      {
-        XNamespace @namespace = "http://schemas.microsoft.com/developer/msbuild/2003";
-        XDocument csprojDoc = XDocument.Load(_options.MsBuildProject);
-
-        IEnumerable<MsBuildPackageReference> references = csprojDoc
-          .Element(@namespace + "Project")
-          ?.Elements(@namespace + "ItemGroup")
-          .Elements(@namespace + "PackageReference")
-          .Select(e => new MsBuildPackageReference()
-          {
-            Include = e.Attribute("Include")?.Value,
-            Version = e.Element(@namespace + "Version")?.Value
-          });
-        Resolve(references);
-
-        IEnumerable<MsBuildPackageReference> dotnetCliToolReferences = csprojDoc
-          .Element(@namespace + "Project")
-          ?.Elements(@namespace + "ItemGroup")
-          .Elements(@namespace + "DotNetCliToolReference")
-          .Select(e => new MsBuildPackageReference()
-          {
-            Include = e.Attribute("Include")?.Value,
-            Version = e.Element(@namespace + "Version")?.Value
-          });
-        Resolve(dotnetCliToolReferences);
+        throw new Exception("Could not resolve package");
       }
 
-      return _dependencies;
+      AppendFromPackageSearchMetadata(package);
     }
 
-    private void Resolve(IPackageSearchMetadata package)
+    public void ResolveBySln(string path)
+    {
+      Log($"Resolving dependencies using {path} ⚡️", ConsoleColor.Yellow);
+      
+      _dependencies = new List<Dependency>();
+
+      var solutionFile = SolutionFile.Parse(path);
+      foreach (var project in solutionFile.ProjectsInOrder)
+      {
+        if (!File.Exists(project.AbsolutePath))
+        {
+          continue;
+        }
+
+        ResolveByCsProj(project.AbsolutePath);
+      }
+    }
+
+    public void ResolveByCsProj(string path)
+    {
+      Log($"Resolving dependencies using {path} ⚡️", ConsoleColor.Yellow);
+      
+      _dependencies = new List<Dependency>();
+
+      XmlDocument xmlDocument = new XmlDocument();
+      xmlDocument.Load(path);
+      var nodes = xmlDocument.SelectNodes("Project/ItemGroup/PackageReference");
+      if (nodes == null)
+      {
+        return;
+      }
+
+      List<PackageReference> references = new List<PackageReference>();
+      foreach (var node in nodes)
+      {
+        var json = JObject.Parse(node.ToJson());
+        references.Add(new PackageReference
+        {
+          Include = json["PackageReference"]?["@Include"]?.ToString(),
+          Version = json["PackageReference"]?["@Version"]?.ToString()
+        });
+      }
+
+      AppendFromPackageReferences(references);
+    }
+
+    private void AppendFromPackageSearchMetadata(IPackageSearchMetadata package)
     {
       if (!_options.NoCache && _cache.PackageExists(package.Identity.Id, package.Identity.Version))
       {
@@ -108,6 +121,8 @@ namespace NuSave.Core
       }
 
       _dependencies.Add(package.ToDependency());
+      
+      Log($"{package.Identity.Id}@{package.Identity.Version}");
 
       foreach (var set in package.DependencySets)
       {
@@ -143,27 +158,26 @@ namespace NuSave.Core
 
           _dependencies.Add(found.ToDependency());
 
-          Log($"{found.Identity.Id} {found.Identity.Version}");
+          Log($"{found.Identity.Id}@{found.Identity.Version}");
 
-          Resolve(found);
+          AppendFromPackageSearchMetadata(found);
         }
       }
     }
 
-    private void Resolve(IEnumerable<MsBuildPackageReference> references)
+    private void AppendFromPackageReference(PackageReference packageReference)
+    {
+      IPackageSearchMetadata nugetPackage = FindPackage(packageReference.Include,
+        SemanticVersion.Parse(packageReference.Version), true, true);
+      AppendFromPackageSearchMetadata(nugetPackage);
+    }
+
+    private void AppendFromPackageReferences(IEnumerable<PackageReference> references)
     {
       foreach (var packageRef in references)
       {
-        Log($"{packageRef.Include} {packageRef.Version}", ConsoleColor.Green);
-        Resolve(packageRef);
+        AppendFromPackageReference(packageRef);
       }
-    }
-
-    private void Resolve(MsBuildPackageReference msBuildPackageReference)
-    {
-      IPackageSearchMetadata nugetPackage = FindPackage(msBuildPackageReference.Include,
-        SemanticVersion.Parse(msBuildPackageReference.Version), true, true);
-      Resolve(nugetPackage);
     }
 
     private IPackageSearchMetadata FindPackage(string id, SemanticVersion version, bool includePrerelease, bool includeUnlisted)

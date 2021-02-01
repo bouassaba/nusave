@@ -6,53 +6,46 @@ namespace NuSave.Core
 
   public class Cache
   {
-    private readonly Options _options;
+    private readonly string _directory;
 
-    public class Options
+    public Cache(string directory)
     {
-      public string Directory { get; set; }
+      _directory = directory;
+
+      if (!string.IsNullOrWhiteSpace(_directory) && System.IO.Directory.Exists(_directory))
+      {
+        return;
+      }
+
+      if (string.IsNullOrWhiteSpace(_directory))
+      {
+        _directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nusave");
+      }
+
+      if (!System.IO.Directory.Exists(_directory))
+      {
+        System.IO.Directory.CreateDirectory(_directory);
+      }
     }
 
-    public Cache(Options options)
+    public string Directory
     {
-      _options = options;
+      get => _directory;
     }
 
     public bool PackageExists(string id, NuGetVersion version)
     {
-      return File.Exists(GetNuGetPackagePath(id, version)) || Directory.Exists(GetNuGetHierarchicalPath(id, version));
+      return File.Exists(GetNuGetPackagePath(id, version)) || System.IO.Directory.Exists(GetNuGetHierarchicalPath(id, version));
     }
 
     public string GetNuGetPackagePath(string id, NuGetVersion version)
     {
-      return Path.Combine(_options.Directory, $"{id}.{version}.nupkg".ToLower());
+      return Path.Combine(_directory, $"{id}.{version}.nupkg".ToLower());
     }
 
     private string GetNuGetHierarchicalPath(string id, NuGetVersion version)
     {
-      return Path.Combine(_options.Directory, id.ToLower(), version.ToString());
-    }
-
-    public string EnsureDirectory()
-    {
-      string directory = _options.Directory;
-
-      if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
-      {
-        return directory;
-      }
-
-      if (string.IsNullOrWhiteSpace(directory))
-      {
-        directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nusave");
-      }
-
-      if (!Directory.Exists(directory))
-      {
-        Directory.CreateDirectory(directory);
-      }
-
-      return directory;
+      return Path.Combine(_directory, id.ToLower(), version.ToString());
     }
   }
 }
