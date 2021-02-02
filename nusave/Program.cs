@@ -65,8 +65,7 @@ namespace NuSave
           Source = source.Value() ?? DefaultSource,
           TargetFrameworks = targetFrameworks.Value() != null ? targetFrameworks.Value().Split(",").ToList() : new List<string>(),
           AllowPreRelease = allowPreRelease.HasValue(),
-          AllowUnlisted = allowUnlisted.HasValue(),
-          Silent = silent.HasValue()
+          AllowUnlisted = allowUnlisted.HasValue()
         }, cache);
         dependencyResolver.ResolveBySln(slnPath.Value);
 
@@ -89,7 +88,6 @@ namespace NuSave
       CommandOption targetFrameworks = null;
       CommandOption allowPreRelease = null;
       CommandOption allowUnlisted = null;
-      CommandOption silent = null;
 
       target.Command("csproj", csproj =>
       {
@@ -101,7 +99,6 @@ namespace NuSave
         cacheDirectory = csproj.Option("--cacheDir", "Cache directory", CommandOptionType.SingleValue);
         allowPreRelease = csproj.Option("--allowPreRelease", "Allow pre-release packages", CommandOptionType.NoValue);
         allowUnlisted = csproj.Option("--allowUnlisted", "Allow unlisted packages", CommandOptionType.NoValue);
-        silent = csproj.Option("--silent", "Don't write anything to stdout", CommandOptionType.NoValue);
       }).OnExecute(() =>
       {
         var cache = new Cache(cacheDirectory.Value());
@@ -113,14 +110,12 @@ namespace NuSave
           Source = source.Value() ?? DefaultSource,
           TargetFrameworks = targetFrameworks.Value() != null ? targetFrameworks.Value().Split(",").ToList() : new List<string>(),
           AllowPreRelease = allowPreRelease.HasValue(),
-          AllowUnlisted = allowUnlisted.HasValue(),
-          Silent = silent.HasValue()
+          AllowUnlisted = allowUnlisted.HasValue()
         }, cache);
         dependencyResolver.ResolveByCsProj(csprojPath.Value);
 
         var downloader = new Downloader(new Downloader.Options
         {
-          Silent = silent.HasValue(),
           Source = source.Value() ?? DefaultSource
         }, dependencyResolver, cache);
         downloader.Download();
@@ -161,8 +156,7 @@ namespace NuSave
           Source = source.Value() ?? DefaultSource,
           TargetFrameworks = targetFrameworks.Value() != null ? targetFrameworks.Value().Split(",").ToList() : new List<string>(),
           AllowPreRelease = allowPreRelease.HasValue(),
-          AllowUnlisted = allowUnlisted.HasValue(),
-          Silent = silent.HasValue()
+          AllowUnlisted = allowUnlisted.HasValue()
         }, cache);
         dependencyResolver.ResolveByIdAndVersion(idAndVersion.Value.Split("@")[0],
           idAndVersion.Value.Split("@")[1]);
