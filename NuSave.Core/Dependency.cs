@@ -10,8 +10,5 @@
 
     [JsonProperty("version")]
     public NuGetVersion Version { get; set; }
-
-    [JsonProperty("authors")]
-    public string Authors { get; set; }
   }
 }

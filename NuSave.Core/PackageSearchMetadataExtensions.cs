@@ -4,13 +4,12 @@ namespace NuSave.Core
 
   public static class PackageSearchMetadataExtensions
   {
-    public static Dependency ToDependency(this IPackageSearchMetadata packageDependency)
+    public static Dependency ToDependency(this IPackageSearchMetadata packageSearchMetadata)
     {
-      return new Dependency
+      return new()
       {
-        Id = packageDependency.Identity.Id,
-        Version = packageDependency.Identity.Version,
-        Authors = string.Join(" ", packageDependency.Authors)
+        Id = packageSearchMetadata.Identity.Id,
+        Version = packageSearchMetadata.Identity.Version
       };
     }
   }
