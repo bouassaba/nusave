@@ -50,7 +50,10 @@ namespace NuSave.Core
     {
       Log($"Resolving dependencies for {id}@{version} 🪄️", ConsoleColor.Yellow);
 
-      IPackageSearchMetadata package = FindPackage(id, SemanticVersion.Parse(version), _options.AllowPreRelease,
+      IPackageSearchMetadata package = FindPackage(
+        id,
+        SemanticVersion.Parse(version),
+        _options.AllowPreRelease,
         _options.AllowUnlisted);
 
       if (package == null)
@@ -102,8 +105,11 @@ namespace NuSave.Core
 
       foreach (var reference in references)
       {
-        IPackageSearchMetadata package = FindPackage(reference.Include,
-          SemanticVersion.Parse(reference.Version), true, true);
+        IPackageSearchMetadata package = FindPackage(
+          reference.Include,
+          SemanticVersion.Parse(reference.Version),
+          true,
+          true);
         Append(package);
       }
     }
