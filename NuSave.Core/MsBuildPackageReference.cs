@@ -1,6 +1,6 @@
 ﻿namespace NuSave.Core
 {
-  public class PackageReference
+  public class MsBuildPackageReference
   {
     public string Include { get; set; }
     

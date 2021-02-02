@@ -3,8 +3,10 @@ namespace NuSave.Core
   using System;
   using System.Collections.Generic;
   using System.IO;
+  using System.Linq;
   using System.Net;
   using System.Threading;
+  using Konsole;
   using NuGet.Common;
   using NuGet.Protocol;
   using NuGet.Protocol.Core.Types;
@@ -39,8 +41,17 @@ namespace NuSave.Core
 
     public void Download()
     {
+      if (!_dependencyResolver.Dependencies.Any())
+      {
+        Log("Package(s) already cached.");
+        return;
+      }
+
       Log("Downloading ⚡️", ConsoleColor.Yellow);
 
+      var pb = new ProgressBar(PbStyle.SingleLine, 100);
+
+      int counter = 0;
       foreach (var dependency in _dependencyResolver.Dependencies)
       {
         if (_cache.PackageExists(dependency.Id, dependency.Version))
@@ -48,7 +59,8 @@ namespace NuSave.Core
           continue;
         }
 
-        Log($"{dependency.Id} {dependency.Version}");
+        pb.Refresh(counter * 100 / _dependencyResolver.Dependencies.Count(), $"{dependency.Id} {dependency.Version} 📦");
+        counter++;
 
         // We keep retrying forever until the user will press Ctrl-C
         // This lets the user decide when to stop retrying.
@@ -80,8 +92,8 @@ namespace NuSave.Core
           }
         }
       }
-      
-      Log("Done 🎉", ConsoleColor.Yellow);
+
+      pb.Refresh(100, "Done 🎉");
     }
 
     private void Log(string message)

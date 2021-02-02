@@ -1,39 +1,49 @@
-# nusave 💾⚡️
+# NuSave 📦 - Cache NuGet package for offline use ✈️
+
+`nusave` gives you the ability to cache NuGet packages from nuget.org or
+any other source with full dependency tree to your computer for offline use.
+
+Supported platforms: Windows, macOS and Linux.
+
+Written in .NET 5.
 
 ## Usage
 
-### Download NuGet package
-nusave gives you the ability to download and save a NuGet package from nuget.org or any other source, with its dependency tree to your computer for offline use. Here is an example:
+Check `nusave --help` for usage options.
 
+### Cache a single NuGet package with dependencies
 ```shell
-nusave cache package "Newtonsoft.Json@12.0.3" --targetFramework ".NETStandard,Version=v1.0" --cacheDir "C:\MyLocalFeed"
+nusave cache package "Newtonsoft.Json@12.0.3" --targetFrameworks ".NETStandard@1.0,.NETStandard@1.3" --cacheDir "C:\path\to\my-local-feed"
 ```
 
-The command above will bring packages that Newtonsoft.Json depend on, if there are any duplicates, they will be ignored. `nusave` checks for existing `.nupkg` files and for hierarchical package folders.
+The command above will bring all packages that Newtonsoft.Json depend on, and if there are 
+any duplicates, they will be ignored. `nusave` checks for existing `.nupkg` files and 
+hierarchical package folders.
 
-The combination of `nusave` and `NuGet.Server` gives you the ability to download all packages needed on your laptop or workstation for offline use.
+The combination of `nusave` and `NuGet.Server` gives you the ability to download all 
+packages needed on your laptop or workstation for offline use.
 
-### Download nuget packages from a `.csproj` file
-
-```shell
-nusave cache csproj "C:\path\to\project.csproj" --cacheDir "C:\MyLocalFeed"
-```
-
-### Download nuget packages from a `.sln` file
+### Cache multiple NuGet packages from a `.csproj` file
 
 ```shell
-nusave cache csproj "C:\path\to\solution.sln" --cacheDir "C:\MyLocalFeed"
+nusave cache csproj "C:\path\to\project.csproj" --cacheDir "C:\path\to\my-local-feed"
 ```
 
-## Installation
+### Cache multiple NuGet packages from an `.sln` file
 
-Check the releases page for binaries, or build `nusave.sln` .
+```shell
+nusave cache sln "C:\path\to\solution.sln" --cacheDir "C:\path\to\my-local-feed"
+```
+
+## Install
+Download the latest release for your platform: https://github.com/eli-ba/nusave/releases
+
+Add the binary to the path. Enjoy! 🎉
+
+## Build
+
+Build `nusave.sln` .
 
 Don't forget to add the location of `nusave.exe` or `nusave` to the `$PATH`.
 
 .NET 5 is needed to build and run nusave.
-
-Check `nusave -help` for more command line options.
-
-
-

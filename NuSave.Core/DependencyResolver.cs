@@ -19,7 +19,7 @@ namespace NuSave.Core
     {
       public string Source { get; set; }
 
-      public string TargetFramework { get; set; }
+      public List<string> TargetFrameworks { get; set; }
 
       public bool AllowPreRelease { get; set; }
 
@@ -52,10 +52,10 @@ namespace NuSave.Core
 
     public void ResolveByIdAndVersion(string id, string version)
     {
-      Log($"Resolving dependencies for {id}@{version} 🪄️", ConsoleColor.Yellow);
+      LogLine($"Resolving dependencies for {id}@{version} 🪄️", ConsoleColor.Yellow);
 
       _dependencies = new List<Dependency>();
-      
+
       IPackageSearchMetadata package = FindPackage(id, SemanticVersion.Parse(version), _options.AllowPreRelease,
         _options.AllowUnlisted);
 
@@ -64,13 +64,20 @@ namespace NuSave.Core
         throw new Exception("Could not resolve package");
       }
 
-      AppendFromPackageSearchMetadata(package);
+      Append(package);
+
+      RemoveDuplicates();
+
+      if (!_options.NoCache)
+      {
+        RemoveCached();
+      }
     }
 
     public void ResolveBySln(string path)
     {
-      Log($"Resolving dependencies using {path} ⚡️", ConsoleColor.Yellow);
-      
+      LogLine($"Resolving dependencies using {path} 🪄️", ConsoleColor.Yellow);
+
       _dependencies = new List<Dependency>();
 
       var solutionFile = SolutionFile.Parse(path);
@@ -87,8 +94,8 @@ namespace NuSave.Core
 
     public void ResolveByCsProj(string path)
     {
-      Log($"Resolving dependencies using {path} ⚡️", ConsoleColor.Yellow);
-      
+      LogLine($"Resolving dependencies using {path} 🪄️", ConsoleColor.Yellow);
+
       _dependencies = new List<Dependency>();
 
       XmlDocument xmlDocument = new XmlDocument();
@@ -99,52 +106,48 @@ namespace NuSave.Core
         return;
       }
 
-      List<PackageReference> references = new List<PackageReference>();
+      List<MsBuildPackageReference> packageReferences = new List<MsBuildPackageReference>();
       foreach (var node in nodes)
       {
         var json = JObject.Parse(node.ToJson());
-        references.Add(new PackageReference
+        packageReferences.Add(new MsBuildPackageReference
         {
           Include = json["PackageReference"]?["@Include"]?.ToString(),
           Version = json["PackageReference"]?["@Version"]?.ToString()
         });
       }
 
-      AppendFromPackageReferences(references);
-    }
-
-    private void AppendFromPackageSearchMetadata(IPackageSearchMetadata package)
-    {
-      if (!_options.NoCache && _cache.PackageExists(package.Identity.Id, package.Identity.Version))
+      foreach (var packageReference in packageReferences)
       {
-        return;
+        IPackageSearchMetadata nugetPackage = FindPackage(packageReference.Include,
+          SemanticVersion.Parse(packageReference.Version), true, true);
+        Append(nugetPackage);
       }
 
+      RemoveDuplicates();
+
+      if (!_options.NoCache)
+      {
+        RemoveCached();
+      }
+    }
+
+    private void Append(IPackageSearchMetadata package)
+    {
       _dependencies.Add(package.ToDependency());
-      
-      Log($"{package.Identity.Id}@{package.Identity.Version}");
 
       foreach (var set in package.DependencySets)
       {
-        string targetFramework = set.TargetFramework.ToString();
-        if (!string.IsNullOrWhiteSpace(_options.TargetFramework) &&
-            !targetFramework.ToLowerInvariant().Contains(_options.TargetFramework.ToLowerInvariant()))
+        string setTargetFramework = set.TargetFramework.ToString();
+        if (_options.TargetFrameworks.Any() &&
+            !_options.TargetFrameworks.Any(e =>
+              setTargetFramework.ToLowerInvariant().Equals(TranslateTargetFrameworkSyntax(e).ToLowerInvariant())))
         {
           continue;
         }
 
         foreach (var dependency in set.Packages)
         {
-          if (!_options.NoCache && _cache.PackageExists(dependency.Id, dependency.VersionRange.ToNuGetVersion()))
-          {
-            continue;
-          }
-
-          if (_dependencies.Any(p => p.Id == dependency.Id && p.Version == dependency.VersionRange.ToNuGetVersion()))
-          {
-            continue;
-          }
-
           var found = FindPackage(
             dependency.Id,
             dependency.VersionRange.ToNuGetVersion(),
@@ -152,32 +155,56 @@ namespace NuSave.Core
             _options.AllowUnlisted);
           if (found == null)
           {
-            Log($"Could not resolve dependency: {dependency.Id} {dependency.VersionRange.ToNuGetVersion().ToString()}", ConsoleColor.Red);
             continue;
           }
 
           _dependencies.Add(found.ToDependency());
 
-          Log($"{found.Identity.Id}@{found.Identity.Version}");
-
-          AppendFromPackageSearchMetadata(found);
+          Append(found);
         }
       }
     }
 
-    private void AppendFromPackageReference(PackageReference packageReference)
+    private void RemoveDuplicates()
     {
-      IPackageSearchMetadata nugetPackage = FindPackage(packageReference.Include,
-        SemanticVersion.Parse(packageReference.Version), true, true);
-      AppendFromPackageSearchMetadata(nugetPackage);
+      List<Dependency> result = new List<Dependency>();
+      foreach (var dependency in _dependencies)
+      {
+        if (!result.Any(e => e.Id == dependency.Id && e.Version == dependency.Version))
+        {
+          result.Add(dependency);
+        }
+      }
+
+      _dependencies = result;
     }
 
-    private void AppendFromPackageReferences(IEnumerable<PackageReference> references)
+    private void RemoveCached()
     {
-      foreach (var packageRef in references)
+      List<Dependency> result = new List<Dependency>();
+      foreach (var dependency in _dependencies)
       {
-        AppendFromPackageReference(packageRef);
+        if (!_cache.PackageExists(dependency.Id, dependency.Version))
+        {
+          result.Add(dependency);
+        }
       }
+
+      _dependencies = result;
+    }
+
+    private static string TranslateTargetFrameworkSyntax(string localSyntax)
+    {
+      var split = localSyntax.Split("@");
+      string value = $"{split[0]},Version=v{split[1]}";
+      return value;
+    }
+
+    private static string ToLocalTargetFrameworkSyntax(string localSyntax)
+    {
+      var split = localSyntax.Replace(" ", "").Split(",");
+      string value = $"{split[0]}@{split[1].Replace("Version=v", "")}";
+      return value;
     }
 
     private IPackageSearchMetadata FindPackage(string id, SemanticVersion version, bool includePrerelease, bool includeUnlisted)
@@ -201,7 +228,7 @@ namespace NuSave.Core
       return null;
     }
 
-    private void Log(string message)
+    private void LogLine(string message)
     {
       if (_options.Silent)
       {
@@ -209,6 +236,28 @@ namespace NuSave.Core
       }
 
       Console.WriteLine(message);
+    }
+
+    private void LogLine(string message, ConsoleColor consoleColor)
+    {
+      if (_options.Silent)
+      {
+        return;
+      }
+
+      Console.ForegroundColor = consoleColor;
+      Console.WriteLine(message);
+      Console.ResetColor();
+    }
+
+    private void Log(string message)
+    {
+      if (_options.Silent)
+      {
+        return;
+      }
+
+      Console.Write(message);
     }
 
     private void Log(string message, ConsoleColor consoleColor)
@@ -219,7 +268,7 @@ namespace NuSave.Core
       }
 
       Console.ForegroundColor = consoleColor;
-      Console.WriteLine(message);
+      Console.Write(message);
       Console.ResetColor();
     }
   }
