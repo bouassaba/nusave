@@ -1,5 +1,7 @@
 # NuSave 📦 - Cache NuGet package for offline use ✈️
 
+![](./readme/recording.gif)
+
 `nusave` gives you the ability to cache NuGet packages from nuget.org or
 any other source with full dependency tree to your computer for offline use.
 
