@@ -6,32 +6,27 @@ namespace NuSave.Core
 
   public class Cache
   {
-    private readonly string _directory;
-
     public Cache(string directory)
     {
-      _directory = directory;
+      Directory = directory;
 
-      if (!string.IsNullOrWhiteSpace(_directory) && System.IO.Directory.Exists(_directory))
+      if (!string.IsNullOrWhiteSpace(Directory) && System.IO.Directory.Exists(Directory))
       {
         return;
       }
 
-      if (string.IsNullOrWhiteSpace(_directory))
+      if (string.IsNullOrWhiteSpace(Directory))
       {
-        _directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nusave");
+        Directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nusave");
       }
 
-      if (!System.IO.Directory.Exists(_directory))
+      if (!System.IO.Directory.Exists(Directory))
       {
-        System.IO.Directory.CreateDirectory(_directory);
+        System.IO.Directory.CreateDirectory(Directory);
       }
     }
 
-    public string Directory
-    {
-      get => _directory;
-    }
+    public string Directory { get; }
 
     public bool PackageExists(string id, NuGetVersion version)
     {
@@ -40,12 +35,12 @@ namespace NuSave.Core
 
     public string GetNuGetPackagePath(string id, NuGetVersion version)
     {
-      return Path.Combine(_directory, $"{id}.{version}.nupkg".ToLower());
+      return Path.Combine(Directory, $"{id}.{version}.nupkg".ToLower());
     }
 
     private string GetNuGetHierarchicalPath(string id, NuGetVersion version)
     {
-      return Path.Combine(_directory, id.ToLower(), version.ToString());
+      return Path.Combine(Directory, id.ToLower(), version.ToString());
     }
   }
 }
