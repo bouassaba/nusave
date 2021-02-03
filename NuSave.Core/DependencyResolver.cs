@@ -52,7 +52,7 @@ namespace NuSave.Core
 
       IPackageSearchMetadata package = FindPackage(
         id,
-        SemanticVersion.Parse(version),
+        NuGetVersion.Parse(version),
         _options.AllowPreRelease,
         _options.AllowUnlisted);
 
@@ -107,7 +107,7 @@ namespace NuSave.Core
       {
         IPackageSearchMetadata package = FindPackage(
           reference.Include,
-          SemanticVersion.Parse(reference.Version),
+          NuGetVersion.Parse(reference.Version),
           true,
           true);
         Append(package);
@@ -174,7 +174,7 @@ namespace NuSave.Core
       return value;
     }
 
-    private IPackageSearchMetadata FindPackage(string id, SemanticVersion version, bool includePrerelease, bool includeUnlisted)
+    private IPackageSearchMetadata FindPackage(string id, NuGetVersion version, bool includePrerelease, bool includeUnlisted)
     {
       PackageMetadataResource resource = SourceRepository.GetResource<PackageMetadataResource>();
       List<IPackageSearchMetadata> packages = resource.GetMetadataAsync(
