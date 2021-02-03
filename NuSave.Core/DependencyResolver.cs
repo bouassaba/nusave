@@ -174,13 +174,6 @@ namespace NuSave.Core
       return value;
     }
 
-    private static string ToLocalTargetFrameworkSyntax(string localSyntax)
-    {
-      var split = localSyntax.Replace(" ", "").Split(",");
-      string value = $"{split[0]}@{split[1].Replace("Version=v", "")}";
-      return value;
-    }
-
     private IPackageSearchMetadata FindPackage(string id, SemanticVersion version, bool includePrerelease, bool includeUnlisted)
     {
       PackageMetadataResource resource = SourceRepository.GetResource<PackageMetadataResource>();
