@@ -1,4 +1,4 @@
-# NuSave 📦 - Cache NuGet package for offline use ✈️
+# NuSave 📦 - Cache NuGet package for offline use
 
 ![](./readme/recording.gif)
 
