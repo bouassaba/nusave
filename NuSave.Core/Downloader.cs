@@ -19,8 +19,6 @@ namespace NuSave.Core
 
     public class Options
     {
-      public string Source { get; set; }
-
       public bool Silent { get; set; }
     }
 
@@ -30,10 +28,6 @@ namespace NuSave.Core
       _dependencyResolver = dependencyResolver;
       _cache = cache;
     }
-
-    private SourceRepository _sourceRepository;
-
-    private SourceRepository SourceRepository => _sourceRepository ??= Repository.Factory.GetCoreV3(_options.Source);
 
     private SourceCacheContext _sourceCacheContext;
 
@@ -74,7 +68,7 @@ namespace NuSave.Core
             string nugetPackageOutputPath = _cache.GetNuGetPackagePath(dependency.Id, dependency.Version);
             using FileStream packageStream = File.Create(nugetPackageOutputPath);
 
-            FindPackageByIdResource resource = SourceRepository.GetResource<FindPackageByIdResource>();
+            FindPackageByIdResource resource = dependency.SourceRepository.GetResource<FindPackageByIdResource>();
             resource.CopyNupkgToStreamAsync(
               dependency.Id,
               dependency.Version,
