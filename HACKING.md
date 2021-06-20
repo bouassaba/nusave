@@ -2,8 +2,8 @@
 
 ### Tag
 ```shell
-git tag -d 3.0.0 && git push --delete origin 3.0.0
-git tag 3.0.0 && git push origin --tags
+git tag -d v1.2.3 && git push --delete origin v1.2.3
+git tag v1.2.3 && git push origin --tags
 ```
 
 ### Create release assets
