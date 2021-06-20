@@ -17,7 +17,7 @@ namespace NuSave.Core
   {
     public class Options
     {
-      public string Source { get; set; }
+      public List<string> Sources { get; set; }
 
       public List<string> TargetFrameworks { get; set; }
 
@@ -28,40 +28,39 @@ namespace NuSave.Core
 
     private readonly Options _options;
     private readonly Cache _cache;
-    private List<Dependency> _dependencies = new();
+    private readonly List<Dependency> _dependencies = new();
+    private readonly HashSet<string> _sources = new() {"https://api.nuget.org/v3/index.json"};
+    private readonly List<SourceRepository> _sourceRepositories = new();
+    private readonly SourceCacheContext _sourceCacheContext = new();
 
     public DependencyResolver(Options options, Cache cache)
     {
       _options = options;
       _cache = cache;
+
+      foreach (var source in options.Sources)
+      {
+        _sources.Add(source);
+      }
+
+      foreach (var source in _sources)
+      {
+        _sourceRepositories.Add(Repository.Factory.GetCoreV3(source));
+      }
     }
 
     public IEnumerable<Dependency> Dependencies => _dependencies;
-
-    private SourceRepository _sourceRepository;
-
-    private SourceRepository SourceRepository => _sourceRepository ??= Repository.Factory.GetCoreV3(_options.Source);
-
-    private SourceCacheContext _sourceCacheContext;
-
-    private SourceCacheContext SourceCacheContext => _sourceCacheContext ??= new SourceCacheContext();
 
     public void ResolveByIdAndVersion(string id, string version)
     {
       Log($"Resolving dependencies for {id}@{version} 🪄️", ConsoleColor.Yellow);
 
-      IPackageSearchMetadata package = FindPackage(
+      (IPackageSearchMetadata package, SourceRepository sourceRepository) = FindPackage(
         id,
         NuGetVersion.Parse(version),
         _options.AllowPreRelease,
         _options.AllowUnlisted);
-
-      if (package == null)
-      {
-        throw new Exception("Could not resolve package");
-      }
-
-      Append(package);
+      Append(package, sourceRepository);
     }
 
     public void ResolveBySln(string path)
@@ -86,14 +85,46 @@ namespace NuSave.Core
 
       XmlDocument xmlDocument = new XmlDocument();
       xmlDocument.Load(path);
-      var nodes = xmlDocument.SelectNodes("Project/ItemGroup/PackageReference");
-      if (nodes == null)
+
+      var additionalSources = new HashSet<string>();
+
+      var restoreAdditionalProjectSourcesXmlNode = xmlDocument.SelectSingleNode("Project/PropertyGroup/RestoreAdditionalProjectSources");
+      if (restoreAdditionalProjectSourcesXmlNode?.InnerText != null)
+      {
+        var sources = restoreAdditionalProjectSourcesXmlNode.InnerText.Split(";").ToList();
+        sources = sources.Select(e => e.Trim()).Where(e => e.Length > 0).ToList();
+        foreach (var source in sources)
+        {
+          additionalSources.Add(source);
+        }
+      }
+
+      var restoreSourcesXmlNode = xmlDocument.SelectSingleNode("Project/PropertyGroup/RestoreSources");
+      if (restoreSourcesXmlNode?.InnerText != null)
+      {
+        var sources = restoreSourcesXmlNode.InnerText.Split(";").ToList();
+        sources = sources.Select(e => e.Trim()).Where(e => e.Length > 0).ToList();
+        foreach (var source in sources)
+        {
+          additionalSources.Add(source);
+        }
+      }
+
+      foreach (var source in additionalSources)
+      {
+        if (_sources.Any(e => e == source)) continue;
+        _sources.Add(source);
+        _sourceRepositories.Add(Repository.Factory.GetCoreV3(source));
+      }
+
+      var packageReferenceXmlNodes = xmlDocument.SelectNodes("Project/ItemGroup/PackageReference");
+      if (packageReferenceXmlNodes == null)
       {
         return;
       }
 
       List<MsBuildPackageReference> references = new List<MsBuildPackageReference>();
-      foreach (var node in nodes)
+      foreach (var node in packageReferenceXmlNodes)
       {
         var json = JObject.Parse(node.ToJson());
         references.Add(new MsBuildPackageReference
@@ -105,16 +136,16 @@ namespace NuSave.Core
 
       foreach (var reference in references)
       {
-        IPackageSearchMetadata package = FindPackage(
+        (IPackageSearchMetadata package, SourceRepository sourceRepository) = FindPackage(
           reference.Include,
           NuGetVersion.Parse(reference.Version),
           true,
           true);
-        Append(package);
+        Append(package, sourceRepository);
       }
     }
 
-    private void Append(IPackageSearchMetadata package)
+    private void Append(IPackageSearchMetadata package, SourceRepository sourceRepository)
     {
       if (_cache.PackageExists(package.Identity.Id, package.Identity.Version))
       {
@@ -126,7 +157,7 @@ namespace NuSave.Core
         return;
       }
 
-      _dependencies.Add(package.ToDependency());
+      _dependencies.Add(package.ToDependency(sourceRepository));
 
       foreach (var set in package.DependencySets)
       {
@@ -150,19 +181,15 @@ namespace NuSave.Core
             return;
           }
 
-          var found = FindPackage(
+          (IPackageSearchMetadata dependencyPackage, SourceRepository dependencySourceRepository) = FindPackage(
             dependency.Id,
             dependency.VersionRange.ToNuGetVersion(),
             _options.AllowPreRelease,
             _options.AllowUnlisted);
-          if (found == null)
-          {
-            continue;
-          }
 
-          _dependencies.Add(found.ToDependency());
+          _dependencies.Add(dependencyPackage.ToDependency(dependencySourceRepository));
 
-          Append(found);
+          Append(dependencyPackage, dependencySourceRepository);
         }
       }
     }
@@ -174,25 +201,35 @@ namespace NuSave.Core
       return value;
     }
 
-    private IPackageSearchMetadata FindPackage(string id, NuGetVersion version, bool includePrerelease, bool includeUnlisted)
+    private (IPackageSearchMetadata, SourceRepository) FindPackage(string id, NuGetVersion version, bool includePrerelease, bool includeUnlisted)
     {
-      PackageMetadataResource resource = SourceRepository.GetResource<PackageMetadataResource>();
-      List<IPackageSearchMetadata> packages = resource.GetMetadataAsync(
-        id,
-        includePrerelease: includePrerelease,
-        includeUnlisted: includeUnlisted,
-        SourceCacheContext,
-        NullLogger.Instance,
-        CancellationToken.None).Result.ToList();
-      foreach (var package in packages)
+      foreach (var sourceRepository in _sourceRepositories)
       {
-        if (package.Identity.Version == version)
+        try
         {
-          return package;
+          PackageMetadataResource resource = sourceRepository.GetResource<PackageMetadataResource>();
+          List<IPackageSearchMetadata> packages = resource.GetMetadataAsync(
+            id,
+            includePrerelease,
+            includeUnlisted,
+            _sourceCacheContext,
+            NullLogger.Instance,
+            CancellationToken.None).Result.ToList();
+          foreach (var package in packages)
+          {
+            if (package.Identity.Version == version)
+            {
+              return (package, sourceRepository);
+            }
+          }
+        }
+        catch
+        {
+          // ignored
         }
       }
 
-      return null;
+      throw new Exception($"Could not find package {id}@{version.OriginalVersion}");
     }
 
     private static void Log(string message, ConsoleColor consoleColor)

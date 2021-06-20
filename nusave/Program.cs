@@ -9,7 +9,6 @@ namespace NuSave
   internal class Program
   {
     private const string Version = "3.0.0";
-    private const string DefaultSource = "https://api.nuget.org/v3/index.json";
 
     private static void Main(string[] args)
     {
@@ -20,7 +19,16 @@ namespace NuSave
       app.HelpOption("--help | -h");
       app.VersionOption("--version | -v", () => Version);
 
-      app.Execute(args);
+      try
+      {
+        app.Execute(args);
+      }
+      catch (Exception e)
+      {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine(e.Message);
+        Console.ResetColor();
+      }
     }
 
     private static void CacheCommand(CommandLineApplication app)
@@ -37,7 +45,7 @@ namespace NuSave
     {
       CommandArgument slnPath = null;
       CommandOption cacheDirectory = null;
-      CommandOption source = null;
+      CommandOption sources = null;
       CommandOption targetFrameworks = null;
       CommandOption allowPreRelease = null;
       CommandOption allowUnlisted = null;
@@ -46,7 +54,7 @@ namespace NuSave
       target.Command("sln", sln =>
       {
         slnPath = sln.Argument("path", "Solution file (.sln)");
-        source = sln.Option("--source", "Package source", CommandOptionType.SingleValue);
+        sources = sln.Option("--source", "Additional sources, comma separated", CommandOptionType.SingleValue);
         targetFrameworks = sln.Option("--targetFrameworks",
           "Target Frameworks (comma separated), example: .NETStandard@1.3,.NETFramework@4.5",
           CommandOptionType.SingleValue);
@@ -62,7 +70,7 @@ namespace NuSave
 
         var dependencyResolver = new DependencyResolver(new DependencyResolver.Options
         {
-          Source = source.Value() ?? DefaultSource,
+          Sources = sources.Value() != null ? sources.Value().Split(",").ToList() : new List<string>(),
           TargetFrameworks = targetFrameworks.Value() != null ? targetFrameworks.Value().Split(",").ToList() : new List<string>(),
           AllowPreRelease = allowPreRelease.HasValue(),
           AllowUnlisted = allowUnlisted.HasValue()
@@ -72,7 +80,6 @@ namespace NuSave
         var downloader = new Downloader(new Downloader.Options
         {
           Silent = silent.HasValue(),
-          Source = source.Value() ?? DefaultSource
         }, dependencyResolver, cache);
         downloader.Download();
 
@@ -84,7 +91,7 @@ namespace NuSave
     {
       CommandArgument csprojPath = null;
       CommandOption cacheDirectory = null;
-      CommandOption source = null;
+      CommandOption sources = null;
       CommandOption targetFrameworks = null;
       CommandOption allowPreRelease = null;
       CommandOption allowUnlisted = null;
@@ -92,7 +99,7 @@ namespace NuSave
       target.Command("csproj", csproj =>
       {
         csprojPath = csproj.Argument("path", "Project file (.csproj)");
-        source = csproj.Option("--source", "Package source", CommandOptionType.SingleValue);
+        sources = csproj.Option("--source", "Additional sources, comma separated", CommandOptionType.SingleValue);
         targetFrameworks = csproj.Option("--targetFrameworks",
           "Target Frameworks (comma separated), example: .NETStandard@1.3,.NETFramework@4.5",
           CommandOptionType.SingleValue);
@@ -107,7 +114,7 @@ namespace NuSave
 
         var dependencyResolver = new DependencyResolver(new DependencyResolver.Options
         {
-          Source = source.Value() ?? DefaultSource,
+          Sources = sources.Value() != null ? sources.Value().Split(",").ToList() : new List<string>(),
           TargetFrameworks = targetFrameworks.Value() != null ? targetFrameworks.Value().Split(",").ToList() : new List<string>(),
           AllowPreRelease = allowPreRelease.HasValue(),
           AllowUnlisted = allowUnlisted.HasValue()
@@ -116,7 +123,6 @@ namespace NuSave
 
         var downloader = new Downloader(new Downloader.Options
         {
-          Source = source.Value() ?? DefaultSource
         }, dependencyResolver, cache);
         downloader.Download();
 
@@ -128,7 +134,7 @@ namespace NuSave
     {
       CommandArgument idAndVersion = null;
       CommandOption cacheDirectory = null;
-      CommandOption source = null;
+      CommandOption sources = null;
       CommandOption targetFrameworks = null;
       CommandOption allowPreRelease = null;
       CommandOption allowUnlisted = null;
@@ -137,7 +143,7 @@ namespace NuSave
       target.Command("package", package =>
       {
         idAndVersion = package.Argument("id@version", "Package ID and Version, example: System.Collections@4.3.0");
-        source = package.Option("--source", "Package source", CommandOptionType.SingleValue);
+        sources = package.Option("--source", "Additional sources, comma separated", CommandOptionType.SingleValue);
         targetFrameworks = package.Option("--targetFrameworks",
           "Target Frameworks (comma separated), example: .NETStandard@1.3,.NETFramework@4.5",
           CommandOptionType.SingleValue);
@@ -153,7 +159,7 @@ namespace NuSave
 
         var dependencyResolver = new DependencyResolver(new DependencyResolver.Options
         {
-          Source = source.Value() ?? DefaultSource,
+          Sources = sources.Value() != null ? sources.Value().Split(",").ToList() : new List<string>(),
           TargetFrameworks = targetFrameworks.Value() != null ? targetFrameworks.Value().Split(",").ToList() : new List<string>(),
           AllowPreRelease = allowPreRelease.HasValue(),
           AllowUnlisted = allowUnlisted.HasValue()
@@ -164,7 +170,6 @@ namespace NuSave
         var downloader = new Downloader(new Downloader.Options
         {
           Silent = silent.HasValue(),
-          Source = source.Value() ?? DefaultSource
         }, dependencyResolver, cache);
         downloader.Download();
 

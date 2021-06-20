@@ -12,13 +12,10 @@ namespace NuSave.Tests
     [TestMethod]
     public void TestDependencyResolver()
     {
-      const string source = "https://api.nuget.org/v3/index.json";
-
       var cache = new Cache(Environment.CurrentDirectory);
-
       var dependencyResolver = new DependencyResolver(new DependencyResolver.Options
       {
-        Source = source,
+        Sources = new List<string>{"https://api.nuget.org/v3/index.json"},
         TargetFrameworks = new List<string> {".NETStandard@1.0", ".NETStandard@1.3"},
         AllowPreRelease = true,
         AllowUnlisted = false,

@@ -1,6 +1,7 @@
 ﻿namespace NuSave.Core
 {
   using Newtonsoft.Json;
+  using NuGet.Protocol.Core.Types;
   using NuGet.Versioning;
 
   public class Dependency
@@ -10,5 +11,8 @@
 
     [JsonProperty("version")]
     public NuGetVersion Version { get; set; }
+    
+    [JsonIgnore]
+    public SourceRepository SourceRepository { get; set; }
   }
 }
