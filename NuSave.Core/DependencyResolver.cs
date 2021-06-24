@@ -171,19 +171,20 @@ namespace NuSave.Core
 
         foreach (var dependency in set.Packages)
         {
-          if (_cache.PackageExists(dependency.Id, dependency.VersionRange.ToNuGetVersion()))
+          var minVersion = dependency.VersionRange.MinVersion;
+          if (_cache.PackageExists(dependency.Id, minVersion))
           {
             return;
           }
 
-          if (_dependencies.Any(e => e.Id == dependency.Id && e.Version == dependency.VersionRange.ToNuGetVersion()))
+          if (_dependencies.Any(e => e.Id == dependency.Id && e.Version == minVersion))
           {
             return;
           }
 
           (IPackageSearchMetadata dependencyPackage, SourceRepository dependencySourceRepository) = FindPackage(
             dependency.Id,
-            dependency.VersionRange.ToNuGetVersion(),
+            minVersion,
             _options.AllowPreRelease,
             _options.AllowUnlisted);
 
