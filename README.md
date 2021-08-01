@@ -1,4 +1,6 @@
-# NuSave - Cache NuGet package for offline use
+# nusave
+
+Cache NuGet Packages for Offline use
 
 ![](./docs/recording.gif)
 
