@@ -1,5 +1,6 @@
 #!/bin/bash
 arch="$1"
+version="$2"
 publishDir=./bin/Release/net5.0/${arch}/publish
 rm -rf ${publishDir}/*
 cd ./src/CommandLine && \
@@ -12,5 +13,5 @@ fi
 if test -f ./NuSave.CommandLine.exe; then
     mv NuSave.CommandLine.exe nusave.exe
 fi
-zip -r ../../../../../../../dist/nusave-3.0.0-${arch}.zip . && \
+zip -r ../../../../../../../dist/nusave-${version}-${arch}.zip . && \
 cd ../../../../../../../

@@ -10,15 +10,15 @@ git tag v1.2.3 && git push origin --tags
 
 Windows:
 ```shell
-./scripts/deploy.sh win-x64 
+./scripts/deploy.sh win-x64 3.1.1
 ```
 
 macOS:
 ```shell
-./scripts/deploy.sh osx-x64 
+./scripts/deploy.sh osx-x64 3.1.1
 ```
 
 Linux:
 ```shell
-./scripts/deploy.sh linux-x64
+./scripts/deploy.sh linux-x64 3.1.1
 ```
