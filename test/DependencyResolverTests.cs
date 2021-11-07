@@ -7,7 +7,7 @@ namespace NuSave.Tests
   using Core;
 
   [TestClass]
-  public class UnitTests
+  public class DependencyResolverTests
   {
     [TestMethod]
     public void TestDependencyResolver()

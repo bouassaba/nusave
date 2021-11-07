@@ -1,4 +1,4 @@
-namespace NuSave
+namespace NuSave.CommandLine
 {
   using System;
   using System.Collections.Generic;
@@ -35,6 +35,7 @@ namespace NuSave
     {
       app.Command("cache", target =>
       {
+        target.HelpOption("--help | -h");
         SlnCommand(target);
         CsprojCommand(target);
         PackageCommand(target);
@@ -53,6 +54,7 @@ namespace NuSave
 
       target.Command("sln", sln =>
       {
+        sln.HelpOption("--help | -h");
         slnPath = sln.Argument("path", "Solution file (.sln)");
         sources = sln.Option("--source", "Additional sources, comma separated", CommandOptionType.SingleValue);
         targetFrameworks = sln.Option("--targetFrameworks",
@@ -98,6 +100,7 @@ namespace NuSave
 
       target.Command("csproj", csproj =>
       {
+        csproj.HelpOption("--help | -h");
         csprojPath = csproj.Argument("path", "Project file (.csproj)");
         sources = csproj.Option("--source", "Additional sources, comma separated", CommandOptionType.SingleValue);
         targetFrameworks = csproj.Option("--targetFrameworks",
@@ -142,6 +145,7 @@ namespace NuSave
 
       target.Command("package", package =>
       {
+        package.HelpOption("--help | -h");
         idAndVersion = package.Argument("id@version", "Package ID and Version, example: System.Collections@4.3.0");
         sources = package.Option("--source", "Additional sources, comma separated", CommandOptionType.SingleValue);
         targetFrameworks = package.Option("--targetFrameworks",
