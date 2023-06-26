@@ -147,17 +147,10 @@ namespace NuSave.Core
 
     private void Append(IPackageSearchMetadata package, SourceRepository sourceRepository)
     {
-      if (_cache.PackageExists(package.Identity.Id, package.Identity.Version))
+      if (!_dependencies.Any(e => e.Id == package.Identity.Id && e.Version == package.Identity.Version))
       {
-        return;
+        _dependencies.Add(package.ToDependency(sourceRepository));
       }
-
-      if (_dependencies.Any(e => e.Id == package.Identity.Id && e.Version == package.Identity.Version))
-      {
-        return;
-      }
-
-      _dependencies.Add(package.ToDependency(sourceRepository));
 
       foreach (var set in package.DependencySets)
       {
@@ -172,24 +165,11 @@ namespace NuSave.Core
         foreach (var dependency in set.Packages)
         {
           var minVersion = dependency.VersionRange.MinVersion;
-          if (_cache.PackageExists(dependency.Id, minVersion))
-          {
-            return;
-          }
-
-          if (_dependencies.Any(e => e.Id == dependency.Id && e.Version == minVersion))
-          {
-            return;
-          }
-
           (IPackageSearchMetadata dependencyPackage, SourceRepository dependencySourceRepository) = FindPackage(
             dependency.Id,
             minVersion,
             _options.AllowPreRelease,
             _options.AllowUnlisted);
-
-          _dependencies.Add(dependencyPackage.ToDependency(dependencySourceRepository));
-
           Append(dependencyPackage, dependencySourceRepository);
         }
       }
