@@ -1,15 +1,11 @@
 # NuSave
 
-Cache NuGet packages for offline access.
-
-![](./docs/img/recording.gif)
-
 NuSave gives you the ability to cache NuGet packages from nuget.org or
 any other source with full dependency tree to your computer for offline use.
 
 Supported platforms: Windows, macOS and Linux.
 
-Written in .NET 5.
+![](./docs/img/recording.gif)
 
 ## Usage
 
